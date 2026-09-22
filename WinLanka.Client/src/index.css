@@ -131,12 +131,15 @@ input {
    ========================================= */
 
 .sidebar {
-    width: 280px; /* Slightly slimmer for a better screen ratio */
-    min-height: 100vh;
+    width: 300px; 
+    height: 100vh; /* Changed from min-height to exact viewport height */
+    position: sticky; /* This locks it in place while the right side scrolls */
+    top: 0; /* Tells it to stick to the very top of the screen */
     display: flex;
     flex-direction: column;
     background-color: rgb(2, 2, 146);
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); /* Adds depth separating it from the main content */
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1); 
+    overflow-y: auto; /* Adds a scrollbar ONLY to the sidebar if your menu gets too long */
 }
 
 /* =========================================
@@ -692,6 +695,393 @@ input {
     color: #991b1b;
 }
 
+/* =========================================
+   Form Pages
+   ========================================= */
+
+.form-page-header {
+    width: 100%;
+    margin-bottom: 24px;
+}
+
+.form-page-header h1 {
+    margin-top: 14px;
+    margin-bottom: 6px;
+    font-size: 28px;
+    color: #1f2937;
+}
+
+.form-page-header p {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.back-button:hover {
+    color: #2563eb;
+}
+
+
+/* =========================================
+   Form Card
+   ========================================= */
+
+.form-card {
+    width: 100%;
+    background-color: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+
+/* =========================================
+   Form Sections
+   ========================================= */
+
+.form-section {
+    width: 100%;
+    padding: 28px 32px;
+    box-sizing: border-box;
+}
+
+.form-section-header {
+    margin-bottom: 22px;
+}
+
+.form-section-header h2 {
+    margin-bottom: 5px;
+    font-size: 18px;
+    color: #1f2937;
+}
+
+.form-section-header p {
+    color: #6b7280;
+    font-size: 13px;
+}
+
+
+/* =========================================
+   Form Grid
+   ========================================= */
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px 28px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.form-group label span {
+    color: #dc2626;
+}
+
+.form-group input {
+    width: 100%;
+    height: 44px;
+    padding: 0 13px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    outline: none;
+    background-color: #ffffff;
+    color: #1f2937;
+    font-size: 14px;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-group input::placeholder {
+    color: #9ca3af;
+}
+
+.form-group input:focus {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+}
+
+.form-group input.input-error {
+    border-color: #dc2626;
+}
+
+.error-message {
+    display: block;
+    margin-top: 6px;
+    color: #dc2626;
+    font-size: 12px;
+}
+
+
+/* =========================================
+   Password
+   ========================================= */
+
+.password-input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.password-input-wrapper input {
+    padding-right: 45px;
+}
+
+.password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transform: translateY(-50%);
+    border: none;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.password-toggle:hover {
+    color: #2563eb;
+}
+
+
+/* =========================================
+   Divider
+   ========================================= */
+
+.form-divider {
+    width: 100%;
+    height: 1px;
+    background-color: #e5e7eb;
+}
+
+
+/* =========================================
+   User Scopes
+   ========================================= */
+
+.scope-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.scope-option {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-height: 90px;
+    padding: 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background-color: #ffffff;
+    cursor: pointer;
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.scope-option:hover {
+    border-color: #93c5fd;
+    background-color: #f8fbff;
+}
+
+.scope-option.selected {
+    border-color: #2563eb;
+    background-color: #eff6ff;
+}
+
+.scope-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.custom-checkbox {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 19px;
+    height: 19px;
+    margin-top: 1px;
+    border: 1px solid #9ca3af;
+    border-radius: 4px;
+    background-color: #ffffff;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.scope-option.selected .custom-checkbox {
+    border-color: #2563eb;
+    background-color: #2563eb;
+}
+
+.scope-option-content {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.scope-option-content strong {
+    color: #1f2937;
+    font-size: 14px;
+}
+
+.scope-option-content small {
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+
+/* =========================================
+   Active Toggle
+   ========================================= */
+
+.active-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background-color: #f9fafb;
+}
+
+.active-status-row strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #374151;
+    font-size: 14px;
+}
+
+.active-status-row p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.toggle-switch {
+    position: relative;
+    flex-shrink: 0;
+    width: 48px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 20px;
+    background-color: #d1d5db;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.toggle-switch.active {
+    background-color: #2563eb;
+}
+
+.toggle-knob {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.toggle-switch.active .toggle-knob {
+    transform: translateX(22px);
+}
+
+
+/* =========================================
+   Form Actions
+   ========================================= */
+
+.form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 32px;
+    border-top: 1px solid #e5e7eb;
+    background-color: #f9fafb;
+    box-sizing: border-box;
+}
+
+.secondary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 44px;
+    padding: 0 18px;
+    border: 1px solid #d1d5db;
+    border-radius: 7px;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.secondary-button:hover {
+    background-color: #f3f4f6;
+}
+
+.form-submit-button {
+    height: 44px;
+}
+
+
+/* =========================================
+   Responsive
+   ========================================= */
+
+@media (max-width: 900px) {
+    .scope-options {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 700px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-section {
+        padding: 22px 20px;
+    }
+
+    .form-actions {
+        padding: 18px 20px;
+    }
+}
 
 /* =========================================
    RESPONSIVE
