@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Eye, Pencil } from "lucide-react";
+import { Plus, Search, Eye, Pencil, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function UsersSummary() {
@@ -133,7 +133,7 @@ function UsersSummary() {
                         className="primary-button"
                         onClick={handleAddUser}
                     >
-                        <Plus size={18} />
+                         <UserPlus size={18} />
                         Add User
                     </button>
                 )}

@@ -345,8 +345,7 @@ function AddUser() {
                             type="submit"
                             className="primary-button form-submit-button"
                         >
-                            <UserPlus size={18} />
-                            Add User
+                             Done
                         </button>
                     </div>
                 </form>

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Eye } from "lucide-react";
+import { Plus, Eye, PackagePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function StockItems() {
@@ -155,7 +155,7 @@ function StockItems() {
                         className="primary-button"
                         onClick={handleAddStock}
                     >
-                        <Plus size={18} />
+                      <PackagePlus size={18} />
                         Add Stock
                     </button>
                 )}
