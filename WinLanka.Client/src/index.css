@@ -1482,6 +1482,99 @@ input {
     max-width: 650px;
 }
 
+.grn-view-modal {
+    max-width: 800px;
+}
+
+
+/* GRN Items Section */
+
+.modal-items-section {
+    margin-top: 28px;
+    padding-top: 24px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+.modal-items-header {
+    margin-bottom: 16px;
+}
+
+.modal-items-header h3 {
+    margin: 0 0 5px;
+
+    color: #1f2937;
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.modal-items-header p {
+    margin: 0;
+
+    color: #6b7280;
+
+    font-size: 13px;
+}
+
+
+/* GRN Items Table */
+
+.modal-items-table-wrapper {
+    width: 100%;
+
+    overflow-x: auto;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+}
+
+.modal-items-table {
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.modal-items-table th {
+    padding: 13px 15px;
+
+    background-color: #f9fafb;
+
+    color: #4b5563;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    text-align: left;
+
+    white-space: nowrap;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-items-table td {
+    padding: 14px 15px;
+
+    color: #374151;
+
+    font-size: 14px;
+
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.modal-items-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.modal-items-table tbody tr:hover {
+    background-color: #f9fafb;
+}
+
+.modal-table-item-name {
+    color: #1f2937 !important;
+    font-weight: 600;
+}
+
 
 /* Mobile */
 
