@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Eye, PackagePlus } from "lucide-react";
+import { Eye, PackagePlus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function StockItems() {
@@ -12,6 +12,9 @@ function StockItems() {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+
+    // Selected stock item for View modal
+    const [selectedItem, setSelectedItem] = useState(null);
 
     const itemsPerPage = 5;
 
@@ -135,8 +138,14 @@ function StockItems() {
         navigate("/stock/add");
     };
 
-    const handleViewStock = (id) => {
-        console.log("View stock item:", id);
+    // Open View modal
+    const handleViewStock = (item) => {
+        setSelectedItem(item);
+    };
+
+    // Close View modal
+    const handleCloseModal = () => {
+        setSelectedItem(null);
     };
 
     return (
@@ -155,12 +164,13 @@ function StockItems() {
                         className="primary-button"
                         onClick={handleAddStock}
                     >
-                      <PackagePlus size={18} />
+                        <PackagePlus size={18} />
                         Add Stock
                     </button>
                 )}
 
             </div>
+
 
             {/* Search and Table */}
             <div className="table-card">
@@ -179,6 +189,7 @@ function StockItems() {
                     </div>
 
                 </div>
+
 
                 {/* Table */}
                 <div className="table-wrapper">
@@ -226,7 +237,7 @@ function StockItems() {
                                                 className="view-button"
                                                 title="View Stock Item"
                                                 onClick={() =>
-                                                    handleViewStock(item.id)
+                                                    handleViewStock(item)
                                                 }
                                             >
                                                 <Eye size={16} />
@@ -257,6 +268,7 @@ function StockItems() {
                     </table>
 
                 </div>
+
 
                 {/* Pagination */}
                 {totalPages > 1 && (
@@ -292,6 +304,132 @@ function StockItems() {
                 )}
 
             </div>
+
+
+            {/* ========================= */}
+            {/* VIEW STOCK ITEM MODAL */}
+            {/* ========================= */}
+
+            {selectedItem && (
+
+                <div
+                    className="modal-overlay"
+                    onClick={handleCloseModal}
+                >
+
+                    <div
+                        className="user-modal stock-item-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        {/* Modal Header */}
+                        <div className="modal-header">
+
+                            <div>
+                                <h2>View Stock Item</h2>
+
+                                <p>
+                                    View the stock item's information.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="modal-close-button"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                            >
+                                <X size={20} />
+                            </button>
+
+                        </div>
+
+
+                        {/* Modal Body */}
+                        <div className="modal-body">
+
+                            <div className="modal-detail-grid">
+
+                                {/* Stock Item ID */}
+                                <div className="modal-detail-item">
+
+                                    <span>
+                                        Stock Item ID
+                                    </span>
+
+                                    <strong>
+                                        {selectedItem.id}
+                                    </strong>
+
+                                </div>
+
+
+                                {/* Stock Item */}
+                                <div className="modal-detail-item">
+
+                                    <span>
+                                        Stock Item
+                                    </span>
+
+                                    <strong>
+                                        {selectedItem.name}
+                                    </strong>
+
+                                </div>
+
+
+                                {/* Category */}
+                                <div className="modal-detail-item">
+
+                                    <span>
+                                        Category
+                                    </span>
+
+                                    <strong>
+                                        {selectedItem.category}
+                                    </strong>
+
+                                </div>
+
+
+                                {/* Unit */}
+                                <div className="modal-detail-item">
+
+                                    <span>
+                                        Unit
+                                    </span>
+
+                                    <strong>
+                                        {selectedItem.unit}
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Modal Footer */}
+                        <div className="modal-footer">
+
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={handleCloseModal}
+                            >
+                                Close
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}
 
         </div>
     );

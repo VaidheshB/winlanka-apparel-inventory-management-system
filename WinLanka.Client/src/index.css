@@ -131,7 +131,7 @@ input {
    ========================================= */
 
 .sidebar {
-    width: 300px; 
+    width: 310px; 
     height: 100vh; /* Changed from min-height to exact viewport height */
     position: sticky; /* This locks it in place while the right side scrolls */
     top: 0; /* Tells it to stick to the very top of the screen */
@@ -1230,6 +1230,294 @@ input {
 
 .remove-item-button:hover {
     background-color: #fee2e2;
+}
+
+/* =========================================
+   USER MODALS
+========================================= */
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 30px;
+
+    background-color: rgba(15, 23, 42, 0.45);
+
+    overflow-y: auto;
+}
+
+.user-modal {
+    width: 100%;
+    max-width: 700px;
+
+    max-height: calc(100vh - 60px);
+
+    background-color: #ffffff;
+
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+
+    overflow: hidden;
+
+    animation: modal-appear 0.18s ease-out;
+}
+
+.edit-user-modal {
+    max-width: 850px;
+}
+
+@keyframes modal-appear {
+
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+}
+
+
+/* Modal Header */
+
+.modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 20px;
+
+    padding: 22px 24px;
+
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.modal-header h2 {
+    margin: 0 0 5px;
+
+    color: #1f2937;
+
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.modal-header p {
+    margin: 0;
+
+    color: #6b7280;
+
+    font-size: 13px;
+}
+
+.modal-close-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    width: 36px;
+    height: 36px;
+
+    border: none;
+    border-radius: 6px;
+
+    background-color: transparent;
+
+    color: #6b7280;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.2s ease,
+        color 0.2s ease;
+}
+
+.modal-close-button:hover {
+    background-color: #f3f4f6;
+    color: #111827;
+}
+
+
+/* Modal Body */
+
+.modal-body {
+    padding: 24px;
+
+    max-height: calc(100vh - 210px);
+
+    overflow-y: auto;
+}
+
+
+/* View Details */
+
+.modal-detail-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 20px;
+}
+
+.modal-detail-item {
+    display: flex;
+    flex-direction: column;
+
+    gap: 7px;
+
+    min-width: 0;
+}
+
+.modal-detail-item span:first-child {
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.modal-detail-item strong {
+    color: #1f2937;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    word-break: break-word;
+}
+
+.modal-detail-full {
+    grid-column: 1 / -1;
+}
+
+.modal-scope-section {
+    margin-top: 26px;
+    padding-top: 22px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+.modal-detail-label {
+    display: block;
+
+    margin-bottom: 12px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.modal-scope-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+
+/* Edit Modal */
+
+.modal-edit-grid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 20px;
+}
+
+.modal-edit-section {
+    margin-top: 28px;
+    padding-top: 24px;
+
+    border-top: 1px solid #e5e7eb;
+}
+
+.modal-edit-section .form-section-header {
+    margin-bottom: 18px;
+}
+
+
+/* Disabled User ID */
+
+.modal-edit-grid input:disabled {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    cursor: not-allowed;
+}
+
+
+/* Modal Footer */
+
+.modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+
+    gap: 10px;
+
+    padding: 17px 24px;
+
+    border-top: 1px solid #e5e7eb;
+
+    background-color: #ffffff;
+}
+
+.stock-item-modal {
+    max-width: 650px;
+}
+
+
+/* Mobile */
+
+@media (max-width: 700px) {
+
+    .modal-overlay {
+        align-items: flex-start;
+
+        padding: 15px;
+    }
+
+    .user-modal {
+        max-height: calc(100vh - 30px);
+    }
+
+    .modal-header {
+        padding: 18px;
+    }
+
+    .modal-body {
+        padding: 18px;
+    }
+
+    .modal-footer {
+        padding: 15px 18px;
+    }
+
+    .modal-detail-grid,
+    .modal-edit-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .modal-detail-full {
+        grid-column: auto;
+    }
+
 }
 
 
