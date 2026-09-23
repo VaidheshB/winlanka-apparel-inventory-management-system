@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Search, Eye, Pencil } from "lucide-react";
+import { Search, Eye, Pencil, X } from "lucide-react";
 
 function StockSummary() {
     // Temporary role. Later this will come from AuthContext/JWT.
@@ -7,9 +7,17 @@ function StockSummary() {
 
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
+
+    // Selected stock summary for View/Edit modal
+    const [selectedStock, setSelectedStock] = useState(null);
+    const [modalType, setModalType] = useState(null);
+
+    // Temporary edit value for reorder level
+    const [editReorderLevel, setEditReorderLevel] = useState("");
+
     const itemsPerPage = 5;
 
-    const stockSummaries = [
+    const [stockSummaries, setStockSummaries] = useState([
         {
             id: 1,
             stockItemId: 101,
@@ -109,7 +117,7 @@ function StockSummary() {
             availableQuantity: 800,
             reorderLevel: 500
         }
-    ];
+    ]);
 
     const filteredStockSummaries = useMemo(() => {
         const search = searchTerm.toLowerCase().trim();
@@ -121,10 +129,9 @@ function StockSummary() {
         return stockSummaries.filter((stock) =>
             stock.id.toString().includes(search) ||
             stock.stockItemId.toString().includes(search) ||
-            stock.stockName.toLowerCase().includes(search) ||
-            stock.category.toLowerCase().includes(search)
+            stock.stockName.toLowerCase().includes(search)
         );
-    }, [searchTerm]);
+    }, [searchTerm, stockSummaries]);
 
     const totalPages = Math.ceil(
         filteredStockSummaries.length / itemsPerPage
@@ -140,39 +147,84 @@ function StockSummary() {
         setCurrentPage(1);
     };
 
-    const handleViewStock = (id) => {
-        console.log("View stock summary:", id);
+    // Open View modal
+    const handleViewStock = (stock) => {
+        setSelectedStock(stock);
+        setModalType("view");
     };
 
-    const handleEditStock = (id) => {
-        console.log("Edit stock summary:", id);
+    // Open Edit modal
+    const handleEditStock = (stock) => {
+        setSelectedStock(stock);
+        setEditReorderLevel(stock.reorderLevel.toString());
+        setModalType("edit");
+    };
+
+    // Close modal
+    const handleCloseModal = () => {
+        setSelectedStock(null);
+        setModalType(null);
+        setEditReorderLevel("");
+    };
+
+    // Save updated reorder level
+    const handleSaveReorderLevel = () => {
+        const newReorderLevel = Number(editReorderLevel);
+
+        if (
+            editReorderLevel === "" ||
+            Number.isNaN(newReorderLevel) ||
+            newReorderLevel < 0
+        ) {
+            return;
+        }
+
+        setStockSummaries((currentStocks) =>
+            currentStocks.map((stock) =>
+                stock.id === selectedStock.id
+                    ? {
+                          ...stock,
+                          reorderLevel: newReorderLevel
+                      }
+                    : stock
+            )
+        );
+
+        handleCloseModal();
     };
 
     return (
         <div className="page-container">
 
+            {/* Page Header */}
             <div className="page-header">
                 <div>
                     <h1>Stock Summary</h1>
                 </div>
             </div>
 
+            {/* Table */}
             <div className="table-card">
 
+                {/* Search */}
                 <div className="table-toolbar">
+
                     <div className="search-box">
                         <Search size={18} />
 
                         <input
                             type="text"
-                            placeholder="Search by ID, stock item, name or category..."
+                            placeholder="Search by ID or stock item..."
                             value={searchTerm}
                             onChange={handleSearch}
                         />
                     </div>
+
                 </div>
 
+                {/* Stock Summary Table */}
                 <div className="table-wrapper">
+
                     <table className="data-table">
 
                         <thead>
@@ -189,89 +241,114 @@ function StockSummary() {
                         </thead>
 
                         <tbody>
+
                             {paginatedStockSummaries.length > 0 ? (
-                                paginatedStockSummaries.map((stock) => (
-                                    <tr key={stock.id}>
+                                paginatedStockSummaries.map((stock) => {
 
-                                        <td>{stock.id}</td>
+                                    const isLowStock =
+                                        stock.availableQuantity <=
+                                        stock.reorderLevel;
 
-                                        <td>{stock.stockItemId}</td>
+                                    return (
+                                        <tr key={stock.id}>
 
-                                        <td className="stock-item-name">
-                                            {stock.stockName}
-                                        </td>
-                                        <td>{stock.totalReceived}</td>
+                                            <td>
+                                                {stock.id}
+                                            </td>
 
-                                        <td>{stock.totalDispatched}</td>
+                                            <td>
+                                                {stock.stockItemId}
+                                            </td>
 
-                                        <td>
-                                            <span
-                                                className={
-                                                    stock.availableQuantity <=
-                                                    stock.reorderLevel
-                                                        ? "stock-quantity low"
-                                                        : "stock-quantity"
-                                                }
-                                            >
-                                                {stock.availableQuantity}
-                                            </span>
-                                        </td>
+                                            <td className="stock-item-name">
+                                                {stock.stockName}
+                                            </td>
 
-                                        <td>{stock.reorderLevel}</td>
+                                            <td>
+                                                {stock.totalReceived}
+                                            </td>
 
-                                        <td>
-                                            <div className="action-buttons">
+                                            <td>
+                                                {stock.totalDispatched}
+                                            </td>
 
-                                                <button
-                                                    type="button"
-                                                    className="view-button"
-                                                    title="View Stock Summary"
-                                                    onClick={() =>
-                                                        handleViewStock(
-                                                            stock.id
-                                                        )
+                                            <td>
+                                                <span
+                                                    className={
+                                                        isLowStock
+                                                            ? "stock-quantity low"
+                                                            : "stock-quantity"
                                                     }
                                                 >
-                                                    <Eye size={16} />
-                                                    View
-                                                </button>
+                                                    {stock.availableQuantity}
+                                                </span>
+                                            </td>
 
-                                                {role === "Storekeeper" && (
+                                            <td>
+                                                {stock.reorderLevel}
+                                            </td>
+
+                                            <td>
+
+                                                <div className="action-buttons">
+
+                                                    {/* View */}
                                                     <button
                                                         type="button"
-                                                        className="edit-button"
-                                                        title="Edit Stock Summary"
+                                                        className="view-button"
+                                                        title="View Stock Summary"
                                                         onClick={() =>
-                                                            handleEditStock(
-                                                                stock.id
+                                                            handleViewStock(
+                                                                stock
                                                             )
                                                         }
                                                     >
-                                                        <Pencil size={16} />
-                                                        Edit
+                                                        <Eye size={16} />
+                                                        View
                                                     </button>
-                                                )}
 
-                                            </div>
-                                        </td>
+                                                    {/* Edit */}
+                                                    {role === "Storekeeper" && (
+                                                        <button
+                                                            type="button"
+                                                            className="edit-button"
+                                                            title="Edit Reorder Level"
+                                                            onClick={() =>
+                                                                handleEditStock(
+                                                                    stock
+                                                                )
+                                                            }
+                                                        >
+                                                            <Pencil size={16} />
+                                                            Edit
+                                                        </button>
+                                                    )}
 
-                                    </tr>
-                                ))
+                                                </div>
+
+                                            </td>
+
+                                        </tr>
+                                    );
+                                })
                             ) : (
                                 <tr>
                                     <td
-                                        colSpan="9"
+                                        colSpan="8"
                                         className="empty-table"
                                     >
                                         No stock summaries found.
                                     </td>
                                 </tr>
                             )}
+
                         </tbody>
 
                     </table>
+
                 </div>
 
+                {/* Pagination */}
                 {totalPages > 1 && (
                     <div className="pagination">
 
@@ -303,6 +380,324 @@ function StockSummary() {
                 )}
 
             </div>
+
+
+            {/* ================================================= */}
+            {/* VIEW STOCK SUMMARY MODAL */}
+            {/* ================================================= */}
+
+            {selectedStock && modalType === "view" && (
+
+                <div
+                    className="modal-overlay"
+                    onClick={handleCloseModal}
+                >
+
+                    <div
+                        className="user-modal stock-summary-view-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        {/* Header */}
+                        <div className="modal-header">
+
+                            <div>
+                                <h2>
+                                    View Stock Summary
+                                </h2>
+
+                                <p>
+                                    View the current stock information.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="modal-close-button"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                            >
+                                <X size={20} />
+                            </button>
+
+                        </div>
+
+
+                        {/* Body */}
+                        <div className="modal-body">
+
+                            <div className="modal-detail-grid">
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Stock Summary ID
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.id}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Stock Item ID
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.stockItemId}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item modal-detail-full">
+                                    <span>
+                                        Stock Name
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.stockName}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Total Received
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.totalReceived}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Total Dispatched
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.totalDispatched}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Available Quantity
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.availableQuantity}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Reorder Level
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.reorderLevel}
+                                    </strong>
+                                </div>
+
+                            </div>
+
+
+                            {/* Low Stock Information */}
+                            {selectedStock.availableQuantity <=
+                                selectedStock.reorderLevel && (
+
+                                <div className="stock-alert-box">
+
+                                    <div>
+                                        <strong>
+                                            Low Stock
+                                        </strong>
+
+                                        <p>
+                                            Available quantity is at or
+                                            below the reorder level.
+                                        </p>
+                                    </div>
+
+                                </div>
+                            )}
+
+                        </div>
+
+
+                        {/* Footer */}
+                        <div className="modal-footer">
+
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={handleCloseModal}
+                            >
+                                Close
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
+
+
+            {/* ================================================= */}
+            {/* EDIT REORDER LEVEL MODAL */}
+            {/* ================================================= */}
+
+            {selectedStock && modalType === "edit" && (
+
+                <div
+                    className="modal-overlay"
+                    onClick={handleCloseModal}
+                >
+
+                    <div
+                        className="user-modal edit-reorder-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        {/* Header */}
+                        <div className="modal-header">
+
+                            <div>
+                                <h2>
+                                    Edit Reorder Level
+                                </h2>
+
+                                <p>
+                                    Update the minimum stock level for
+                                    this item.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="modal-close-button"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                            >
+                                <X size={20} />
+                            </button>
+
+                        </div>
+
+
+                        {/* Body */}
+                        <div className="modal-body">
+
+                            {/* Stock Information */}
+                            <div className="modal-detail-grid">
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Stock Item ID
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.stockItemId}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Stock Name
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.stockName}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Available Quantity
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.availableQuantity}
+                                    </strong>
+                                </div>
+
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Current Reorder Level
+                                    </span>
+
+                                    <strong>
+                                        {selectedStock.reorderLevel}
+                                    </strong>
+                                </div>
+
+                            </div>
+
+
+                            {/* Edit Section */}
+                            <div className="reorder-edit-section">
+
+                                <label
+                                    htmlFor="reorderLevel"
+                                    className="reorder-label"
+                                >
+                                    New Reorder Level
+                                </label>
+
+                                <input
+                                    id="reorderLevel"
+                                    type="number"
+                                    min="0"
+                                    value={editReorderLevel}
+                                    onChange={(event) =>
+                                        setEditReorderLevel(
+                                            event.target.value
+                                        )
+                                    }
+                                    className="reorder-input"
+                                />
+
+                                <p className="reorder-help-text">
+                                    The reorder level is the minimum
+                                    quantity at which the stock should
+                                    be considered for restocking.
+                                </p>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Footer */}
+                        <div className="modal-footer">
+
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={handleCloseModal}
+                            >
+                                Cancel
+                            </button>
+
+                            <button
+                                type="button"
+                                className="primary-button modal-save-button"
+                                onClick={handleSaveReorderLevel}
+                            >
+                                Save Changes
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            )}
+
         </div>
     );
 }
