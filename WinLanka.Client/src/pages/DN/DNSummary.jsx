@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Plus, Search, Eye } from "lucide-react";
+import { Plus, Search, Eye,  X} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 function DNSummary() {
@@ -11,6 +11,9 @@ function DNSummary() {
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 10;
+     // Selected DN for View modal
+    const [selectedDN, setSelectedDN] = useState(null);
+
 
     const dispatchNotes = [
         {
@@ -93,8 +96,15 @@ function DNSummary() {
         navigate("/dispatch-notes/add");
     };
 
-    const handleViewDispatchNote = (id) => {
-        console.log("View Dispatch Note:", id);
+     // Open View modal
+    const handleViewDispatchNote = (dn) => {
+        setSelectedDN(dn);
+    };
+
+
+    // Close View modal
+    const handleCloseModal = () => {
+        setSelectedDN(null);
     };
 
     return (
@@ -184,7 +194,7 @@ function DNSummary() {
                                                 title="View Dispatch Note"
                                                 onClick={() =>
                                                     handleViewDispatchNote(
-                                                        dn.id
+                                                        dn
                                                     )
                                                 }
                                             >
@@ -241,6 +251,194 @@ function DNSummary() {
                 )}
 
             </div>
+         
+            {/* ================================= */}
+            {/* VIEW DN MODAL */}
+            {/* ================================= */}
+
+            {selectedDN && (
+
+                <div
+                    className="modal-overlay"
+                    onClick={handleCloseModal}
+                >
+
+                    <div
+                        className="user-modal grn-view-modal"
+                        onClick={(event) =>
+                            event.stopPropagation()
+                        }
+                    >
+
+                        {/* Modal Header */}
+                        <div className="modal-header">
+
+                            <div>
+                                <h2>View Dispatched Note</h2>
+
+                                <p>
+                                    View the complete DN information and
+                                    dispatched items.
+                                </p>
+                            </div>
+
+                            <button
+                                type="button"
+                                className="modal-close-button"
+                                onClick={handleCloseModal}
+                                aria-label="Close"
+                            >
+                                <X size={20} />
+                            </button>
+
+                        </div>
+
+
+                        {/* Modal Body */}
+                        <div className="modal-body">
+
+                            {/* DN Information */}
+                            <div className="modal-detail-grid">
+
+                                {/* DN ID */}
+                                <div className="modal-detail-item">
+
+                                    <span>
+                                        DN ID
+                                    </span>
+
+                                    <strong>
+                                        {selectedDN.id}
+                                    </strong>
+
+                                </div>
+
+
+                                {/* Date */}
+                                <div className="modal-detail-item">
+
+                                    <span>
+                                        Date
+                                    </span>
+
+                                    <strong>
+                                        {selectedDN.date}
+                                    </strong>
+
+                                </div>
+
+
+                                {/* Supplier */}
+                                <div className="modal-detail-item modal-detail-full">
+
+                                    <span>
+                                        Customer Name
+                                    </span>
+
+                                    <strong>
+                                        {selectedDN.customer}
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+
+                            {/* Dispatched Items Section */}
+                            <div className="modal-items-section">
+
+                                <div className="modal-items-header">
+
+                                    <div>
+                                        <h3>
+                                            Stock Items Dispatched
+                                        </h3>
+
+                                        <p>
+                                            {selectedDN.items.length}{" "}
+                                            {selectedDN.items.length === 1
+                                                ? "item"
+                                                : "items"}{" "}
+                                            dispatched in this DN.
+                                        </p>
+                                    </div>
+
+                                </div>
+
+
+                                {/* Items Table */}
+                                <div className="modal-items-table-wrapper">
+
+                                    <table className="modal-items-table">
+
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Stock Item</th>
+                                                <th>Quantity</th>
+                                                <th>Unit</th>
+                                            </tr>
+                                        </thead>
+
+                                        <tbody>
+
+                                            {selectedDN.items.map(
+                                                (item, index) => (
+
+                                                    <tr
+                                                        key={`${selectedDN.id}-item-${index}`}
+                                                    >
+
+                                                        <td>
+                                                            {index + 1}
+                                                        </td>
+
+                                                        <td className="modal-table-item-name">
+                                                            {item.name}
+                                                        </td>
+
+                                                        <td>
+                                                            {item.quantity}
+                                                        </td>
+
+                                                        <td>
+                                                            {item.unit}
+                                                        </td>
+
+                                                    </tr>
+
+                                                )
+                                            )}
+
+                                        </tbody>
+
+                                    </table>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* Modal Footer */}
+                        <div className="modal-footer">
+
+                            <button
+                                type="button"
+                                className="secondary-button"
+                                onClick={handleCloseModal}
+                            >
+                                Close
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            )}   
         </div>
     );
 }
