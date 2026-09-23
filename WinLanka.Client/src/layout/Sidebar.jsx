@@ -30,12 +30,12 @@ const Sidebar = ({ role, onLogout }) => {
                 icon: Package
             },
             {
-                name: "GRN Summary",
+                name: "Good Receieved Notes",
                 path: "/grn",
                 icon: FileText
             },
             {
-                name: "DN Summary",
+                name: "Dispatch Notes",
                 path: "/dispatch-notes",
                 icon: Truck
             },
@@ -59,12 +59,12 @@ const Sidebar = ({ role, onLogout }) => {
                 icon: Package
             },
             {
-                name: "GRN Summary",
+                name: "Good Receieved Notes",
                 path: "/grn",
                 icon: FileText
             },
             {
-                name: "DN Summary",
+                name: "Dispatch Notes",
                 path: "/dispatch-notes",
                 icon: Truck
             },
