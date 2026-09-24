@@ -43,8 +43,12 @@ const Sidebar = ({ role, onLogout }) => {
                 name: "Stock Summary",
                 path: "/stock-summary",
                 icon: Package
+            },
+            {
+                name: "Daily Summary",
+                path: "/daily-summary",
+                icon: Package
             }
-        
         ],
 
         "Stock Manager": [
@@ -68,9 +72,14 @@ const Sidebar = ({ role, onLogout }) => {
                 path: "/dispatch-notes",
                 icon: Truck
             },
-             {
+            {
                 name: "Stock Summary",
                 path: "/stock-summary",
+                icon: Package
+            },
+            {
+                name: "Daily Summary",
+                path: "/daily-summary",
                 icon: Package
             }
         ]
