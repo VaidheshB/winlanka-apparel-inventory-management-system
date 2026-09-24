@@ -8,7 +8,8 @@ function AddStock() {
     const [formData, setFormData] = useState({
         stockItemName: "",
         category: "",
-        unit: ""
+        unit: "",
+        reorderLevel: ""
     });
 
     const [errors, setErrors] = useState({});
@@ -53,6 +54,9 @@ function AddStock() {
 
         if (!formData.unit) {
             newErrors.unit = "Please select a unit.";
+        }
+         if (!formData.reorderLevel) {
+            newErrors.reorderLevel = "Reorder level is required.";
         }
 
         setErrors(newErrors);
@@ -206,6 +210,30 @@ function AddStock() {
                                 {errors.unit && (
                                     <small className="error-message">
                                         {errors.unit}
+                                    </small>
+                                )}
+                            </div>
+                            {/* Reorder Level */}
+                            <div className="form-group">
+                                <label htmlFor="reorderLevel">
+                                    Reorder Level <span>*</span>
+                                </label>
+                                <input
+                                    id="reorderLevel"
+                                    name="reorderLevel"
+                                    type="number"
+                                    value={formData.reorderLevel}
+                                    onChange={handleChange}
+                                    placeholder="Enter reorder level"
+                                    className={
+                                        errors.reorderLevel
+                                            ? "input-error"
+                                            : ""
+                                    }
+                                />
+                                {errors.reorderLevel && (
+                                    <small className="error-message">
+                                        {errors.reorderLevel}
                                     </small>
                                 )}
                             </div>

@@ -25,79 +25,93 @@ function StockItems() {
             id: 1,
             name: "Basic T-Shirt",
             category: "Men",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 50
         },
         {
             id: 2,
             name: "Formal Shirt",
             category: "Men",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 30
         },
         {
             id: 3,
             name: "Ladies Blouse",
             category: "Women",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 20
         },
         {
             id: 4,
             name: "Cotton Fabric",
             category: "Casual",
-            unit: "m"
+            unit: "m",
+            reorderLevel: 100
         },
         {
             id: 5,
             name: "Denim Fabric",
             category: "Casual",
-            unit: "m"
+            unit: "m",
+            reorderLevel: 80
         },
         {
             id: 6,
             name: "Polo Shirt",
             category: "Men",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 40
         },
         {
             id: 7,
             name: "Women's Trousers",
             category: "Women",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 25
         },
         {
             id: 8,
             name: "Women's Skirt",
             category: "Women",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 15
         },
         {
             id: 9,
             name: "Men's Jeans",
             category: "Men",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 35
         },
         {
             id: 10,
             name: "Linen Fabric",
             category: "Casual",
-            unit: "m"
+            unit: "m",
+            reorderLevel: 60
         },
         {
             id: 11,
             name: "Sports T-Shirt",
             category: "Men",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 45
+
         },
         {
             id: 12,
             name: "Cotton Shorts",
             category: "Men",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 20
         },
         {
             id: 13,
             name: "Women's Jacket",
             category: "Women",
-            unit: "pcs"
+            unit: "pcs",
+            reorderLevel: 10
         }
     ];
 
@@ -202,8 +216,10 @@ function StockItems() {
                                 <th>Stock Item</th>
                                 <th>Category</th>
                                 <th>Unit</th>
+                                <th>ReorderLevel</th>
                                 <th>Action</th>
                             </tr>
+
                         </thead>
 
                         <tbody>
@@ -231,7 +247,9 @@ function StockItems() {
                                         </td>
 
                                         <td>
-
+                                            {item.reorderLevel}
+                                        </td>
+                                        <td>
                                             <button
                                                 type="button"
                                                 className="view-button"
@@ -254,7 +272,7 @@ function StockItems() {
 
                                 <tr>
                                     <td
-                                        colSpan="5"
+                                        colSpan="7"
                                         className="empty-table"
                                     >
                                         No stock items found.
@@ -405,6 +423,15 @@ function StockItems() {
                                         {selectedItem.unit}
                                     </strong>
 
+                                </div>
+                                {/* Reorder Level */}
+                                <div className="modal-detail-item">
+                                    <span>
+                                        Reorder Level
+                                    </span> 
+                                    <strong>
+                                        {selectedItem.reorderLevel}
+                                    </strong>
                                 </div>
 
                             </div>
