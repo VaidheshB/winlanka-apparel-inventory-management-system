@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="WinLanka.Data/WinLanka.Data.csproj" Id="18ae0a84-3a49-4d63-9b07-6d9ca90f45bf" />
+  <Project Path="PasswordGenerator/PasswordGenerator.csproj" Id="f7f43bc7-1534-47cf-b971-00a62f019f18" />
   <Project Path="WinLanka.Server/WinLanka.Server.csproj" Id="d2e9b2ec-22db-4911-a8db-7362a6cb01aa" />
   <Project Path="WinLanka.Users/WinLanka.Users.csproj" Id="76464e85-8d6f-4aa6-bf29-077c7e3cfb94" />
 </Solution>

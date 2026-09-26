@@ -1,23 +1,71 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import clothingImage from "../../assets/clothing.jpg";
+import { login } from "../../services/auth";
 
 function Login() {
+    const navigate = useNavigate();
+
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [error, setError] = useState("");
 
-    const handleSubmit = (event) => {
+    const [error, setError] = useState("");
+    const [isLoading, setIsLoading] = useState(false);
+
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         setError("");
 
         if (!username.trim() || !password.trim()) {
-            setError("Please enter your username and password.");
+            setError(
+                "Please enter your username and password."
+            );
+
             return;
         }
 
-        // API authentication will be implemented later.
-        console.log("Login submitted");
+        try {
+            setIsLoading(true);
+
+            const user = await login(
+                username,
+                password
+            );
+
+            /*
+             * Send the user to an appropriate page
+             * based on their scopes.
+             */
+
+            if (user.roles.includes("Admin")) {
+                navigate("/users");
+            }
+            else if (
+                user.roles.includes("Storekeeper")
+            ) {
+                navigate("/stock");
+            }
+            else if (
+                user.roles.includes("Stock Manager")
+            ) {
+                navigate("/grn");
+            }
+            else {
+                setError(
+                    "Your account does not have a valid scope."
+                );
+            }
+
+        } catch (error) {
+            setError(
+                error.message ||
+                "Login failed. Please try again."
+            );
+
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -26,18 +74,25 @@ function Login() {
             <div className="login-card">
 
                 <div className="login-header">
+
                     <h1>WinLanka</h1>
-                    <p>Apparel Inventory Management</p>
+
+                    <p>
+                        Apparel Inventory Management
+                    </p>
+
                     <img
                         src={clothingImage}
                         alt="WinLanka Apparel"
                         className="login-logo"
                     />
+
                 </div>
 
                 <form onSubmit={handleSubmit}>
 
                     <div className="form-group">
+
                         <label htmlFor="username">
                             Username
                         </label>
@@ -47,14 +102,19 @@ function Login() {
                             type="text"
                             value={username}
                             onChange={(event) =>
-                                setUsername(event.target.value)
+                                setUsername(
+                                    event.target.value
+                                )
                             }
                             placeholder="Enter your username"
                             autoComplete="username"
+                            disabled={isLoading}
                         />
+
                     </div>
 
                     <div className="form-group">
+
                         <label htmlFor="password">
                             Password
                         </label>
@@ -64,11 +124,15 @@ function Login() {
                             type="password"
                             value={password}
                             onChange={(event) =>
-                                setPassword(event.target.value)
+                                setPassword(
+                                    event.target.value
+                                )
                             }
                             placeholder="Enter your password"
                             autoComplete="current-password"
+                            disabled={isLoading}
                         />
+
                     </div>
 
                     {error && (
@@ -80,8 +144,11 @@ function Login() {
                     <button
                         type="submit"
                         className="login-button"
+                        disabled={isLoading}
                     >
-                        Login
+                        {isLoading
+                            ? "Logging in..."
+                            : "Login"}
                     </button>
 
                 </form>

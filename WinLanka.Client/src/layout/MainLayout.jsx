@@ -1,34 +1,59 @@
-import { Outlet, useNavigate } from "react-router-dom";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
+
 import Sidebar from "./Sidebar";
+
+import {
+    getCurrentUser,
+    getAccessToken,
+    logout
+} from "../services/auth";
 
 function MainLayout() {
 
-    // Temporary role.
-    // Later this will come from the logged-in user's JWT.
-    const role = "Storekeeper";
-
     const navigate = useNavigate();
+
+    const token = getAccessToken();
+    const user = getCurrentUser();
+
+
+    /*
+     * User is not logged in.
+     */
+
+    if (!token || !user) {
+        return (
+            <Navigate
+                to="/login"
+                replace
+            />
+        );
+    }
+
 
     const handleLogout = () => {
 
-        // Later:
-        // - Remove JWT
-        // - Remove user information
-        // - Clear authentication state
+        logout();
 
-        navigate("/login");
+        navigate(
+            "/login",
+            { replace: true }
+        );
     };
 
+
     return (
+
         <div className="app-layout">
 
             <Sidebar
-                role={role}
+                roles={user.roles}
                 onLogout={handleLogout}
             />
 
             <main className="main-content">
+
                 <Outlet />
+
             </main>
 
         </div>

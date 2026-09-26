@@ -1,5 +1,6 @@
-import React from 'react'
+import React from "react";
 import { NavLink } from "react-router-dom";
+
 import {
     Package,
     FileText,
@@ -8,8 +9,12 @@ import {
     LogOut
 } from "lucide-react";
 
-const Sidebar = ({ role, onLogout }) => {
-     const menuItems = {
+import clothingImage from "../assets/clothing.jpg";
+
+const Sidebar = ({ roles, onLogout }) => {
+
+    const menuItems = {
+
         Admin: [
             {
                 name: "Users Summary",
@@ -19,18 +24,13 @@ const Sidebar = ({ role, onLogout }) => {
         ],
 
         Storekeeper: [
-             {
-                name: "Users Summary",
-                path: "/users",
-                icon: Users
-            },
             {
                 name: "Stock Items",
                 path: "/stock",
                 icon: Package
             },
             {
-                name: "Good Receieved Notes",
+                name: "Good Received Notes",
                 path: "/grn",
                 icon: FileText
             },
@@ -42,28 +42,13 @@ const Sidebar = ({ role, onLogout }) => {
             {
                 name: "Stock Summary",
                 path: "/stock-summary",
-                icon: Package
-            },
-            {
-                name: "Daily Summary",
-                path: "/daily-summary",
                 icon: Package
             }
         ],
 
         "Stock Manager": [
-             {
-                name: "Users Summary",
-                path: "/users",
-                icon: Users
-            },
             {
-                name: "Stock Items",
-                path: "/stock",
-                icon: Package
-            },
-            {
-                name: "Good Receieved Notes",
+                name: "Good Received Notes",
                 path: "/grn",
                 icon: FileText
             },
@@ -76,34 +61,67 @@ const Sidebar = ({ role, onLogout }) => {
                 name: "Stock Summary",
                 path: "/stock-summary",
                 icon: Package
-            },
-            {
-                name: "Daily Summary",
-                path: "/daily-summary",
-                icon: Package
             }
         ]
     };
 
-    const menus = menuItems[role] || [];
 
-  return (
-     <aside className="sidebar">
+    /*
+     * Combine menus from all scopes.
+     *
+     * Example:
+     *
+     * Admin + Storekeeper
+     *
+     * → Users Summary
+     * → Stock Items
+     * → GRN
+     * → Dispatch Notes
+     * → Stock Summary
+     */
+
+    const menus = roles
+        .flatMap((role) => menuItems[role] || [])
+        .filter(
+            (menu, index, array) =>
+                index ===
+                array.findIndex(
+                    (item) =>
+                        item.path === menu.path
+                )
+        );
+
+
+    return (
+
+        <aside className="sidebar">
 
             {/* Logo */}
+
             <div className="sidebar-logo">
+
                 <img
-                    src="src\assets\clothing.jpg"
+                    src={clothingImage}
                     alt="WinLanka"
                 />
 
                 <div className="sidebar-logo-text">
-                    <h2>WinLanka</h2>
-                    <p>Apparel Inventory</p>
+
+                    <h2>
+                        WinLanka
+                    </h2>
+
+                    <p>
+                        Apparel Inventory
+                    </p>
+
                 </div>
+
             </div>
 
+
             {/* Navigation */}
+
             <nav className="sidebar-navigation">
 
                 {menus.map((menu) => {
@@ -111,27 +129,36 @@ const Sidebar = ({ role, onLogout }) => {
                     const Icon = menu.icon;
 
                     return (
+
                         <NavLink
                             key={menu.path}
                             to={menu.path}
                             className={({ isActive }) =>
                                 `sidebar-menu-item ${
-                                    isActive ? "active" : ""
+                                    isActive
+                                        ? "active"
+                                        : ""
                                 }`
                             }
                         >
+
                             <Icon size={20} />
 
                             <span>
                                 {menu.name}
                             </span>
+
                         </NavLink>
+
                     );
+
                 })}
 
             </nav>
 
+
             {/* Logout */}
+
             <div className="sidebar-footer">
 
                 <button
@@ -139,23 +166,19 @@ const Sidebar = ({ role, onLogout }) => {
                     className="sidebar-logout"
                     onClick={onLogout}
                 >
+
                     <LogOut size={20} />
 
                     <span>
                         Logout
                     </span>
+
                 </button>
 
             </div>
 
         </aside>
-    
-  )
-}
+    );
+};
 
 export default Sidebar;
-
-
-
-
-
