@@ -12,6 +12,8 @@ namespace WinLanka.Users.Services.Interfaces
         Task<bool> UpdateRefreshTokenAsync(User user, string refreshToken, DateTime expiryTime);
         Task<User?> ValidateRefreshTokenAsync(string refreshToken);
         Task<(bool Success, string? Error, User? User)>AddUserAsync(AddUserDTO data);
+        Task<(bool Success, string? Error, User? User)>UpdateUserAsync(int userId, UpdateUserDTO data);
+        Task<List<UserDTO>> GetAllUsersAsync();
 
     }
 }

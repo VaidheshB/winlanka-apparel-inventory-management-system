@@ -79,7 +79,6 @@ namespace WinLanka.Users.Services
                 return (false,"Last name is required.",null);
             }
 
-            
             if (string.IsNullOrWhiteSpace(data.UserName))
             {
                 return (false,"Username is required.",null);
@@ -91,7 +90,6 @@ namespace WinLanka.Users.Services
             {
                 return (false,"Username cannot exceed 100 characters.",null);
             }
-
 
             if (string.IsNullOrWhiteSpace(data.Password))
             {
@@ -158,30 +156,112 @@ namespace WinLanka.Users.Services
                 return (false,"One or more selected scopes are invalid.",null);
             }
 
-           
             var user = new User
             {
                 FirstName =data.FirstName.Trim(),
-
                 LastName =data.LastName.Trim(),
-
                 UserName =username,
-
                 IsActive =data.IsActive,
-
                 RefreshToken = null,
-
                 RefreshTokenExpiryTime = null
             };
 
-           
             user.Password =_passwordHasher.HashPassword(user,data.Password);
-
-           
             var createdUser =await _userRepository.AddUserAsync(user,scopes);
+            return (true, null, createdUser);
+        }
 
-            return (true,null,createdUser);
-        
+        public async Task<(bool Success,string? Error,User? User)>UpdateUserAsync(int userId,UpdateUserDTO data)
+        {
+            if (userId <= 0)
+            {
+                return (false,"Invalid user ID.",null);
+            }
+
+            if (string.IsNullOrWhiteSpace(data.FirstName))
+            {
+                return (false,"First name is required.",null);
+            }
+
+            if (string.IsNullOrWhiteSpace(data.LastName))
+            {
+                return (false,"Last name is required.",null);
+            }
+
+            if (string.IsNullOrWhiteSpace(data.UserName))
+            {
+                return (false,"Username is required.",null);
+            }
+
+            var username = data.UserName.Trim();
+
+            if (username.Length > 100)
+            {
+                return (false,"Username cannot exceed 100 characters.",null);
+            }
+
+            if (data.Scopes == null || data.Scopes.Count == 0)
+            {
+                return (false,"At least one scope must be selected.",null);
+            }
+
+            var requestedScopes =data.Scopes.Where(s => !string.IsNullOrWhiteSpace(s))
+                                    .Select(s => s.Trim())
+                                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                                    .ToList();
+
+            if (requestedScopes.Count == 0)
+            {
+                return (false,"At least one valid scope must be selected.",null);
+            }
+
+            var user =await _userRepository.GetUserByIdAsync(userId);
+
+            if (user == null)
+            {
+                return (false,"User not found.",null);
+            }
+
+            var existingUser =await _userRepository.GetUserByUsernameAsync(username);
+
+            if (existingUser != null && existingUser.UserId != userId)
+            {
+                return (false,"Username already exists.",null);
+            }
+
+            var scopes =await _userRepository.GetScopesByNamesAsync(requestedScopes);
+
+            if (scopes.Count != requestedScopes.Count)
+            {
+                return (false,"One or more selected scopes are invalid.",null);
+            }
+
+            user.FirstName = data.FirstName.Trim();
+            user.LastName = data.LastName.Trim();
+            user.UserName = username;
+            user.IsActive = data.IsActive;
+            await _userRepository.UpdateUserAsync(user,scopes);
+            return (true,null,user);
+        }
+
+        public async Task<List<UserDTO>> GetAllUsersAsync()
+        {
+            var users = await _userRepository.GetAllUsersAsync();
+
+            return users.Select(user => new UserDTO
+                {
+                    UserId = user.UserId,
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    UserName = user.UserName,
+                    IsActive = user.IsActive == true,
+                    Scopes = user.UserScopes?
+                        .Where(us => us.Scope != null)
+                        .Select(us => us.Scope!.ScopeName!)
+                        .ToList()
+                        ?? new List<string>()
+                })
+                .ToList();
         }
     }
 }

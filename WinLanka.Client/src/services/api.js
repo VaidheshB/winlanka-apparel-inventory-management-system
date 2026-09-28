@@ -112,3 +112,75 @@ export async function addUser(userData) {
 
     return data;
 }
+
+export async function updateUser(userId, userData) {
+    const response = await apiFetch(
+        `/users/${userId}`,
+        {
+            method: "PUT",
+            body: JSON.stringify(userData)
+        }
+    );
+
+    const contentType =
+        response.headers.get("content-type");
+
+    let data;
+
+    if (
+        contentType &&
+        contentType.includes("application/json")
+    ) {
+        data = await response.json();
+    }
+    else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            typeof data === "string"
+                ? data
+                : data.message ||
+                  "Unable to update user."
+        );
+    }
+
+    return data;
+}
+
+export async function getAllUsers() {
+    const response = await apiFetch(
+        "/users",
+        {
+            method: "GET"
+        }
+    );
+
+    const contentType =
+        response.headers.get("content-type");
+
+    let data;
+
+    if (
+        contentType &&
+        contentType.includes("application/json")
+    ) {
+        data = await response.json();
+    }
+    else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            typeof data === "string"
+                ? data
+                : data.message ||
+                  "Unable to load users."
+        );
+    }
+
+    return data;
+}
+

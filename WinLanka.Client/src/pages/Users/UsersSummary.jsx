@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import {
     Search,
     Eye,
@@ -7,14 +7,14 @@ import {
     X
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { updateUser, getAllUsers} from "../../services/api";
+import { getCurrentUser} from "../../services/auth";
 
 function UsersSummary() {
 
     const navigate = useNavigate();
-
-    // Temporary role.
-    // Later this will come from AuthContext/JWT.
-    const role = "Admin";
+    const currentUser = getCurrentUser();
+    const isAdmin = currentUser?.roles?.includes("Admin");
 
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
@@ -22,68 +22,56 @@ function UsersSummary() {
     const [selectedUser, setSelectedUser] = useState(null);
     const [modalType, setModalType] = useState(null);
 
+    const [isUpdating, setIsUpdating] = useState(false);
+    const [updateError, setUpdateError] = useState("");
+
+    const [users, setUsers] = useState([]);
+    const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+    const [usersError, setUsersError] = useState("");
+
     const itemsPerPage = 5;
 
-    // Temporary data.
-    // Later this will come from the User Azure Function API.
-    const [users, setUsers] = useState([
-        {
-            id: 1,
-            firstName: "John",
-            lastName: "Smith",
-            username: "john.admin",
-            isActive: true,
-            scopes: ["Admin"]
-        },
-        {
-            id: 2,
-            firstName: "Michael",
-            lastName: "Perera",
-            username: "michael.store",
-            isActive: true,
-            scopes: ["Storekeeper"]
-        },
-        {
-            id: 3,
-            firstName: "Sarah",
-            lastName: "Fernando",
-            username: "sarah.manager",
-            isActive: true,
-            scopes: ["Stock Manager"]
-        },
-        {
-            id: 4,
-            firstName: "David",
-            lastName: "Silva",
-            username: "david.store",
-            isActive: false,
-            scopes: ["Storekeeper"]
-        },
-        {
-            id: 5,
-            firstName: "Emma",
-            lastName: "Johnson",
-            username: "emma.admin",
-            isActive: true,
-            scopes: ["Admin", "Storekeeper"]
-        },
-        {
-            id: 6,
-            firstName: "Daniel",
-            lastName: "Williams",
-            username: "daniel.manager",
-            isActive: true,
-            scopes: ["Stock Manager", "Storekeeper"]
-        },
-        {
-            id: 7,
-            firstName: "Sophia",
-            lastName: "Brown",
-            username: "sophia.store",
-            isActive: true,
-            scopes: ["Storekeeper"]
+    useEffect(() => {
+        loadUsers();
+    }, []);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
+    const loadUsers = async () => {
+        try {
+            setIsLoadingUsers(true);
+            setUsersError("");
+
+            const data =await getAllUsers();
+            const formattedUsers =
+                data.map((user) => ({
+                    id: user.UserId,
+                    firstName: user.FirstName || "",
+                    lastName: user.LastName || "",
+                    username: user.UserName || "",
+                    isActive: user.IsActive,
+                    scopes: user.Scopes || []
+                }));
+            setUsers(formattedUsers);
+
+        } catch (error) {
+            console.error(
+                "Failed to load users:",
+                error
+            );
+
+            setUsersError(
+                error.message ||
+                "Unable to load users."
+            );
+
+        } finally {
+            setIsLoadingUsers(false);
         }
-    ]);
+    };
+
 
     const availableScopes = [
         "Admin",
@@ -144,13 +132,20 @@ function UsersSummary() {
             scopes: [...user.scopes]
         });
 
+        setUpdateError("");
+        setIsUpdating(false);
         setModalType("edit");
     };
 
     // Close modal
     const handleCloseModal = () => {
+        if (isUpdating) {
+            return;
+        }
+
         setSelectedUser(null);
         setModalType(null);
+        setUpdateError("");
     };
 
     // Handle Edit input changes
@@ -193,28 +188,109 @@ function UsersSummary() {
     };
 
     // Save edited user
-    const handleSaveChanges = (event) => {
-
+    const handleSaveChanges = async (event) => {
         event.preventDefault();
 
         if (!selectedUser) {
             return;
         }
 
-        setUsers((previousUsers) =>
-            previousUsers.map((user) =>
-                user.id === selectedUser.id
-                    ? selectedUser
-                    : user
-            )
-        );
+        setUpdateError("");
 
-        console.log("Updated user:", selectedUser);
+        // Frontend validation
+        if (!selectedUser.firstName.trim()) {
+            setUpdateError(
+                "First name is required."
+            );
+            return;
+        }
 
-        // API integration will be added later.
-        // PUT /user
+        if (!selectedUser.lastName.trim()) {
+            setUpdateError(
+                "Last name is required."
+            );
+            return;
+        }
 
-        handleCloseModal();
+        if (!selectedUser.username.trim()) {
+            setUpdateError(
+                "Username is required."
+            );
+            return;
+        }
+
+        if (selectedUser.scopes.length === 0) {
+            setUpdateError(
+                "Select at least one user scope."
+            );
+            return;
+        }
+
+        const userData = {
+            firstName:
+                selectedUser.firstName.trim(),
+
+            lastName:
+                selectedUser.lastName.trim(),
+
+            userName:
+                selectedUser.username.trim(),
+
+            scopes:
+                selectedUser.scopes,
+
+            isActive:
+                selectedUser.isActive
+        };
+
+        try {
+            setIsUpdating(true);
+
+            console.log(
+                "Updating user:",
+                {
+                    userId: selectedUser.id,
+                    ...userData
+                }
+            );
+
+            const response =
+                await updateUser(
+                    selectedUser.id,
+                    userData
+                );
+
+            console.log(
+                "Update user response:",
+                response
+            );
+
+            // Update local table only
+            // after backend succeeds.
+            setUsers((previousUsers) =>
+                previousUsers.map((user) =>
+                    user.id === selectedUser.id
+                        ? selectedUser
+                        : user
+                )
+            );
+
+            handleCloseModal();
+
+        } catch (error) {
+            console.error(
+                "Update user failed:",
+                error
+            );
+
+            setUpdateError(
+                error.message ||
+                "Unable to update user. Please try again."
+            );
+
+        } finally {
+            setIsUpdating(false);
+        }
     };
 
     return (
@@ -228,7 +304,7 @@ function UsersSummary() {
                 </div>
 
                 {/* Admin only */}
-                {role === "Admin" && (
+                {isAdmin && (
                     <button
                         type="button"
                         className="primary-button"
@@ -281,7 +357,29 @@ function UsersSummary() {
 
                         <tbody>
 
-                            {paginatedUsers.length > 0 ? (
+                            {isLoadingUsers ? (
+
+                                <tr>
+                                    <td
+                                        colSpan="6"
+                                        className="empty-table"
+                                    >
+                                        Loading users...
+                                    </td>
+                                </tr>
+
+                            ) : usersError ? (
+
+                                <tr>
+                                    <td
+                                        colSpan="6"
+                                        className="empty-table"
+                                    >
+                                        {usersError}
+                                    </td>
+                                </tr>
+
+                            ) : paginatedUsers.length > 0 ? (
 
                                 paginatedUsers.map((user) => (
 
@@ -310,8 +408,7 @@ function UsersSummary() {
                                             >
                                                 {user.isActive
                                                     ? "Active"
-                                                    : "Inactive"
-                                                }
+                                                    : "Inactive"}
                                             </span>
 
                                         </td>
@@ -339,7 +436,6 @@ function UsersSummary() {
 
                                             <div className="action-buttons">
 
-                                                {/* View */}
                                                 <button
                                                     type="button"
                                                     className="view-button"
@@ -352,9 +448,7 @@ function UsersSummary() {
                                                     View
                                                 </button>
 
-
-                                                {/* Edit - Admin only */}
-                                                {role === "Admin" && (
+                                                {isAdmin && (
                                                     <button
                                                         type="button"
                                                         className="edit-button"
@@ -388,7 +482,6 @@ function UsersSummary() {
                                 </tr>
 
                             )}
-
                         </tbody>
 
                     </table>
@@ -617,7 +710,11 @@ function UsersSummary() {
                         <form onSubmit={handleSaveChanges}>
 
                             <div className="modal-body">
-
+                                {updateError && (
+                                    <div className="login-error">
+                                        {updateError}
+                                    </div>
+                                )}
                                 <div className="modal-edit-grid">
 
                                     {/* First Name */}
@@ -712,11 +809,10 @@ function UsersSummary() {
 
                                             <label
                                                 key={scope}
-                                                className={`scope-option ${
-                                                    selectedUser.scopes.includes(scope)
+                                                className={`scope-option ${selectedUser.scopes.includes(scope)
                                                         ? "selected"
                                                         : ""
-                                                }`}
+                                                    }`}
                                             >
 
                                                 <input
@@ -787,11 +883,10 @@ function UsersSummary() {
 
                                         <button
                                             type="button"
-                                            className={`toggle-switch ${
-                                                selectedUser.isActive
+                                            className={`toggle-switch ${selectedUser.isActive
                                                     ? "active"
                                                     : ""
-                                            }`}
+                                                }`}
                                             onClick={
                                                 handleEditActiveChange
                                             }
@@ -812,20 +907,19 @@ function UsersSummary() {
 
                             {/* Modal Footer */}
                             <div className="modal-footer">
-
                                 <button
                                     type="button"
                                     className="secondary-button"
                                     onClick={handleCloseModal}
-                                >
+                                    disabled={isUpdating} >
                                     Cancel
                                 </button>
 
                                 <button
                                     type="submit"
                                     className="primary-button form-submit-button"
-                                >
-                                    Save Changes
+                                    disabled={isUpdating}>
+                                    {isUpdating ? "Saving..." : "Save Changes"}
                                 </button>
 
                             </div>

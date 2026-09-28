@@ -11,9 +11,10 @@ namespace WinLanka.Users.Repositories.Interfaces
         Task UpdateRefreshTokenAsync(User user,string refreshToken,DateTime expiryTime);
         Task<User?> GetUserByRefreshTokenAsync(string refreshToken);
         Task<bool> UsernameExistsAsync(string username);
-
         Task<List<Scope>> GetScopesByNamesAsync(List<string> scopeNames);
-
         Task<User> AddUserAsync(User user,List<Scope> scopes);
+        Task<User?> GetUserByIdAsync(int userId);
+        Task<User> UpdateUserAsync( User user,List<Scope> scopes);
+        Task<List<User>> GetAllUsersAsync();
     }
 }

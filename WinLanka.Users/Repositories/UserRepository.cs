@@ -71,5 +71,37 @@ namespace WinLanka.Users.Repositories
             return user;
         }
 
+        public async Task<User?> GetUserByIdAsync(int userId)
+        {
+            return await _context.Users
+                .Include(u => u.UserScopes!)
+                    .ThenInclude(us => us.Scope)
+                .FirstOrDefaultAsync(
+                    u => u.UserId == userId);
+        }
+
+        public async Task<User> UpdateUserAsync( User user, List<Scope> scopes)
+        {
+            _context.UserScopes.RemoveRange(user.UserScopes!);
+
+            user.UserScopes = new List<UserScope>();
+
+            foreach (var scope in scopes)
+            {
+                user.UserScopes.Add( new UserScope { UserId = user.UserId, ScopeId = scope.ScopeId});
+            }
+            await _context.SaveChangesAsync();
+            return user;
+        }
+
+        public async Task<List<User>> GetAllUsersAsync()
+        {
+            return await _context.Users
+                        .Include(u => u.UserScopes!)
+                        .ThenInclude(us => us.Scope)
+                        .OrderBy(u => u.UserId)
+                        .ToListAsync();
+        }
+
     }
 }
