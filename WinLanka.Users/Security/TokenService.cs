@@ -64,6 +64,35 @@ namespace WinLanka.Users.Security
             }
         }
 
+        public ClaimsPrincipal? ValidateToken(
+            string token)
+        {
+            try
+            {
+                var key = Encoding.ASCII.GetBytes( _configuration["JwtKey"]!);
+
+                var tokenHandler = new JwtSecurityTokenHandler();
+
+                var validationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(key),
+                        ValidateIssuer = false,
+                        ValidateAudience = false,
+                        ValidateLifetime = true,
+                        ClockSkew = TimeSpan.FromMinutes(1)
+                    };
+
+                var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
+                return principal;
+
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
 
     }
 }

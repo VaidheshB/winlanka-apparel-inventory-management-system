@@ -1,0 +1,142 @@
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Azure.Functions.Worker;
+using Microsoft.Azure.Functions.Worker.Http;
+using Microsoft.Extensions.Logging;
+using System.Net;
+using System.Security.Claims;
+using System.Text.Json;
+using WinLanka.Users.DTOs;
+using WinLanka.Users.Security.Interfaces;
+using WinLanka.Users.Services.Interfaces;
+
+namespace WinLanka.Users.Functions;
+
+public class AddUserFunction
+{
+    private readonly ILogger<AddUserFunction> _logger;
+    private readonly IUserService _userService;
+
+    private readonly ITokenService _tokenService;
+
+    public AddUserFunction(ILogger<AddUserFunction> logger, IUserService userService, ITokenService tokenService)
+    {
+        _logger = logger;
+        _userService = userService;
+        _tokenService = tokenService;
+    }
+
+    [Function("AddUserFunction")]
+    public async Task<HttpResponseData> Run([HttpTrigger(AuthorizationLevel.Function,"post",Route = "users")] HttpRequestData req)
+    {
+        
+        // 1. Get Authorization header
+
+        if (!req.Headers.TryGetValues("Authorization",out var authorizationValues))
+        {
+            return await CreateResponse( req,HttpStatusCode.Unauthorized,"Authorization token is required.");
+        }
+
+        var authorizationHeader =authorizationValues.FirstOrDefault();
+
+        if (string.IsNullOrWhiteSpace(authorizationHeader) ||!authorizationHeader.StartsWith("Bearer ",StringComparison.OrdinalIgnoreCase))
+        {
+            return await CreateResponse(req,HttpStatusCode.Unauthorized,"Invalid Authorization header.");
+        }
+
+        var token =authorizationHeader.Substring("Bearer ".Length).Trim();
+
+        if (string.IsNullOrWhiteSpace(token))
+        {
+            return await CreateResponse(req,HttpStatusCode.Unauthorized,"Access token is required.");
+        }
+
+        // 2. Validate JWT
+
+        var principal = _tokenService.ValidateToken(token);
+
+        if (principal == null)
+        {
+            return await CreateResponse(req,HttpStatusCode.Unauthorized,"Invalid or expired access token.");
+        }
+
+        // 3. Validate Admin role
+
+        var isAdmin = principal.Claims.Any(claim => claim.Type ==ClaimTypes.Role && claim.Value.Equals("Admin",StringComparison.OrdinalIgnoreCase));
+
+        if (!isAdmin)
+        {
+            return await CreateResponse(req,HttpStatusCode.Forbidden,"Admin scope is required.");
+        }
+
+        // 4. Read request body
+
+        string requestBody;
+
+        using (var reader = new StreamReader(req.Body))
+        {
+            requestBody = await reader.ReadToEndAsync();
+        }
+
+        if (string.IsNullOrWhiteSpace(requestBody))
+        {
+            return await CreateResponse(req,HttpStatusCode.BadRequest,"Request body is required.");
+        }
+
+        // 5. Deserialize request
+        
+        AddUserDTO data;
+
+        try
+        {
+            data = JsonSerializer.Deserialize<AddUserDTO>(requestBody,new JsonSerializerOptions {PropertyNameCaseInsensitive = true});
+        }
+        catch (JsonException)
+        {
+            return await CreateResponse(req,HttpStatusCode.BadRequest,"Invalid request body.");
+        }
+
+        if (data == null)
+        {
+            return await CreateResponse(req,HttpStatusCode.BadRequest,"Invalid request data.");
+        }
+
+       
+        // 6. Add user
+        
+
+        var result = await _userService.AddUserAsync(data);
+
+        if (!result.Success)
+        {
+            return await CreateResponse(req,HttpStatusCode.BadRequest,result.Error!);
+        }
+
+        // 7. Return safe response
+      
+        var response = req.CreateResponse(HttpStatusCode.Created);
+
+        await response.WriteAsJsonAsync(new { message = "User created successfully.",
+
+                user = new
+                {
+                    userId =result.User!.UserId,
+                    firstName =result.User.FirstName,
+                    lastName =result.User.LastName,
+                    userName =result.User.UserName,
+                    isActive =result.User.IsActive,
+                    scopes =data.Scopes
+                }
+            });
+
+        return response;
+
+    }
+
+    private static async Task<HttpResponseData>CreateResponse(HttpRequestData req,HttpStatusCode statusCode,string message)
+    {
+        var response =req.CreateResponse(statusCode);
+        await response.WriteStringAsync(message);
+        return response;
+    }
+}

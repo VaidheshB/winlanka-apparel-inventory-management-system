@@ -75,3 +75,40 @@ export async function apiFetch(
 
     return response;
 }
+
+export async function addUser(userData) {
+    const response = await apiFetch(
+        "/users",
+        {
+            method: "POST",
+
+            body: JSON.stringify(userData)
+        }
+    );
+
+    const contentType =
+        response.headers.get("content-type");
+
+    let data;
+
+    if (
+        contentType &&
+        contentType.includes("application/json")
+    ) {
+        data = await response.json();
+    }
+    else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            typeof data === "string"
+                ? data
+                : data.message ||
+                  "Unable to create user."
+        );
+    }
+
+    return data;
+}

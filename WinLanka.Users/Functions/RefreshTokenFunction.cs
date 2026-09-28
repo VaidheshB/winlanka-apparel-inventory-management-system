@@ -33,7 +33,7 @@ public class RefreshTokenFunction
 
         using (var reader = new StreamReader(req.Body))
         {
-           requestBody = reader.ReadToEnd();
+           requestBody = await reader.ReadToEndAsync();
         }
 
         RefreshTokenDTO? refreshTokenDTO;
