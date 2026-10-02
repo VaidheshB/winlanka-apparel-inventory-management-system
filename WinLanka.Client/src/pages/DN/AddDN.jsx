@@ -1,22 +1,21 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+import {
+    getAllStockItems,
+    addDispatchNote
+} from "../../services/api";
 
 function AddDN() {
     const navigate = useNavigate();
 
-    // Temporary stock item data.
-    // This will come from the Stock Items API later.
-    const stockItems = [
-        { id: 101, name: "Basic T-Shirt", unit: "pcs" },
-        { id: 102, name: "Formal Shirt", unit: "pcs" },
-        { id: 103, name: "Ladies Blouse", unit: "pcs" },
-        { id: 104, name: "Cotton Fabric", unit: "m" },
-        { id: 105, name: "Denim Fabric", unit: "m" },
-        { id: 106, name: "Polo Shirt", unit: "pcs" },
-        { id: 107, name: "Women's Trousers", unit: "pcs" },
-        { id: 108, name: "Women's Skirt", unit: "pcs" }
-    ];
+    const [stockItems, setStockItems] = useState([]);
+    const [isLoadingStockItems, setIsLoadingStockItems] =
+        useState(true);
+
+    const [isSubmitting, setIsSubmitting] =
+        useState(false);
 
     const [formData, setFormData] = useState({
         customerName: "",
@@ -26,8 +25,57 @@ function AddDN() {
 
     const [errors, setErrors] = useState({});
 
+
+    // ============================================================
+    // LOAD STOCK ITEMS
+    // ============================================================
+
+    useEffect(() => {
+        const loadStockItems = async () => {
+            try {
+                setIsLoadingStockItems(true);
+
+                const data =
+                    await getAllStockItems();
+
+                const formattedStockItems =
+                    data.map((item) => ({
+                        id: item.StockItemId,
+                        name: item.StockName || "",
+                        unit: item.Unit || ""
+                    }));
+
+                setStockItems(
+                    formattedStockItems
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to load stock items:",
+                    error
+                );
+
+                setErrors((previous) => ({
+                    ...previous,
+                    stockItems:
+                        error.message ||
+                        "Unable to load stock items."
+                }));
+            } finally {
+                setIsLoadingStockItems(false);
+            }
+        };
+
+        loadStockItems();
+    }, []);
+
+
+    // ============================================================
+    // HEADER INPUT CHANGE
+    // ============================================================
+
     const handleHeaderChange = (event) => {
-        const { name, value } = event.target;
+        const { name, value } =
+            event.target;
 
         setFormData((previous) => ({
             ...previous,
@@ -36,9 +84,15 @@ function AddDN() {
 
         setErrors((previous) => ({
             ...previous,
-            [name]: ""
+            [name]: "",
+            submit: ""
         }));
     };
+
+
+    // ============================================================
+    // ADD STOCK ITEM ROW
+    // ============================================================
 
     const handleAddItem = () => {
         setFormData((previous) => ({
@@ -51,11 +105,27 @@ function AddDN() {
                 }
             ]
         }));
+
+        setErrors((previous) => ({
+            ...previous,
+            items: ""
+        }));
     };
 
-    const handleItemChange = (index, field, value) => {
+
+    // ============================================================
+    // STOCK ITEM CHANGE
+    // ============================================================
+
+    const handleItemChange = (
+        index,
+        field,
+        value
+    ) => {
         setFormData((previous) => {
-            const updatedItems = [...previous.items];
+            const updatedItems = [
+                ...previous.items
+            ];
 
             updatedItems[index] = {
                 ...updatedItems[index],
@@ -70,151 +140,316 @@ function AddDN() {
 
         setErrors((previous) => ({
             ...previous,
-            items: ""
+            items: "",
+            submit: ""
         }));
     };
+
+
+    // ============================================================
+    // REMOVE STOCK ITEM ROW
+    // ============================================================
 
     const handleRemoveItem = (index) => {
         setFormData((previous) => ({
             ...previous,
-            items: previous.items.filter((_, itemIndex) => itemIndex !== index)
+            items: previous.items.filter(
+                (_, itemIndex) =>
+                    itemIndex !== index
+            )
+        }));
+
+        setErrors((previous) => ({
+            ...previous,
+            items: ""
         }));
     };
 
+
+    // ============================================================
+    // GET STOCK ITEM
+    // ============================================================
+
     const getStockItem = (stockItemId) => {
         return stockItems.find(
-            (item) => item.id === Number(stockItemId)
+            (item) =>
+                item.id === Number(stockItemId)
         );
     };
+
+
+    // ============================================================
+    // FORM VALIDATION
+    // ============================================================
 
     const validateForm = () => {
         const newErrors = {};
 
+        // Customer validation
         if (!formData.customerName.trim()) {
-            newErrors.customerName = "Customer name is required.";
+            newErrors.customerName =
+                "Customer name is required.";
         }
 
+        // Date validation
         if (!formData.date) {
-            newErrors.date = "Date is required.";
+            newErrors.date =
+                "Date is required.";
         }
 
+        // Item validation
         if (formData.items.length === 0) {
-            newErrors.items = "Add at least one stock item.";
+            newErrors.items =
+                "Add at least one stock item.";
         } else {
-            const hasInvalidItem = formData.items.some(
-                (item) =>
-                    !item.stockItemId ||
-                    !item.quantity ||
-                    Number(item.quantity) <= 0
-            );
+            const hasInvalidItem =
+                formData.items.some(
+                    (item) =>
+                        !item.stockItemId ||
+                        Number(item.stockItemId) <= 0 ||
+                        !item.quantity ||
+                        Number(item.quantity) <= 0
+                );
 
             if (hasInvalidItem) {
                 newErrors.items =
                     "Select a stock item and enter a valid quantity for every row.";
             }
+
+            // Check duplicate stock items
+            const stockItemIds =
+                formData.items.map(
+                    (item) =>
+                        Number(item.stockItemId)
+                );
+
+            const hasDuplicates =
+                new Set(stockItemIds).size !==
+                stockItemIds.length;
+
+            if (hasDuplicates) {
+                newErrors.items =
+                    "The same stock item cannot be added more than once.";
+            }
         }
 
         setErrors(newErrors);
 
-        return Object.keys(newErrors).length === 0;
+        return (
+            Object.keys(newErrors).length === 0
+        );
     };
 
-    const handleSubmit = (event) => {
+
+    // ============================================================
+    // SUBMIT
+    // ============================================================
+
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (!validateForm()) {
             return;
         }
 
-        const submissionData = {
-            customerName: formData.customerName,
-            date: formData.date,
-            items: formData.items.map((item) => ({
-                stockItemId: Number(item.stockItemId),
-                quantity: Number(item.quantity)
-            }))
-        };
+        try {
+            setIsSubmitting(true);
 
-        console.log("Dispatch Note data:", submissionData);
+            setErrors((previous) => ({
+                ...previous,
+                submit: ""
+            }));
 
-        // API integration will be added later.
+            const submissionData = {
+                customer:
+                    formData.customerName.trim(),
 
-        navigate("/dispatch-notes");
+                date:
+                    formData.date,
+
+                items:
+                    formData.items.map(
+                        (item) => ({
+                            stockItemId:
+                                Number(
+                                    item.stockItemId
+                                ),
+
+                            quantity:
+                                Number(
+                                    item.quantity
+                                )
+                        })
+                    )
+            };
+
+            console.log(
+                "Dispatch Note payload:",
+                JSON.stringify(
+                    submissionData,
+                    null,
+                    2
+                )
+            );
+
+            const result =
+                await addDispatchNote(
+                    submissionData
+                );
+
+            console.log(
+                "Dispatch Note orchestration started:",
+                result
+            );
+
+            navigate(
+                "/dispatch-notes"
+            );
+        } catch (error) {
+            console.error(
+                "Failed to add Dispatch Note:",
+                error
+            );
+
+            setErrors((previous) => ({
+                ...previous,
+                submit:
+                    error.message ||
+                    "Unable to add Dispatch Note."
+            }));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+
+    // ============================================================
+    // CANCEL
+    // ============================================================
 
     const handleCancel = () => {
-        navigate("/dispatch-notes");
+        navigate(
+            "/dispatch-notes"
+        );
     };
+
 
     return (
         <div className="page-container">
+
+            {/* ================================================== */}
+            {/* PAGE HEADER */}
+            {/* ================================================== */}
+
             <div className="form-page-header">
                 <div>
                     <button
                         type="button"
                         className="back-button"
                         onClick={handleCancel}
+                        disabled={isSubmitting}
                     >
                         <ArrowLeft size={18} />
                         Back to DN Summary
                     </button>
 
-                    <h1>Add Dispatch Note</h1>
+                    <h1>
+                        Add Dispatch Note
+                    </h1>
                 </div>
             </div>
 
+
+            {/* ================================================== */}
+            {/* FORM CARD */}
+            {/* ================================================== */}
+
             <div className="form-card">
                 <form onSubmit={handleSubmit}>
-                    {/* Dispatch Note Information */}
+
+                    {/* ========================================== */}
+                    {/* DISPATCH NOTE INFORMATION */}
+                    {/* ========================================== */}
+
                     <div className="form-section">
+
                         <div className="form-section-header">
-                            <h2>Dispatch Note Information</h2>
+                            <h2>
+                                Dispatch Note Information
+                            </h2>
+
                             <p>
-                                Enter the customer and date for this dispatch
-                                note.
+                                Enter the customer and date
+                                for this dispatch note.
                             </p>
                         </div>
 
                         <div className="form-grid">
+
+                            {/* Customer */}
+
                             <div className="form-group">
                                 <label htmlFor="customerName">
-                                    Customer Name <span>*</span>
+                                    Customer Name{" "}
+                                    <span>*</span>
                                 </label>
 
                                 <input
                                     id="customerName"
                                     name="customerName"
                                     type="text"
-                                    value={formData.customerName}
-                                    onChange={handleHeaderChange}
+                                    value={
+                                        formData.customerName
+                                    }
+                                    onChange={
+                                        handleHeaderChange
+                                    }
                                     placeholder="Enter customer name"
                                     className={
                                         errors.customerName
                                             ? "input-error"
                                             : ""
                                     }
+                                    disabled={
+                                        isSubmitting
+                                    }
                                 />
 
                                 {errors.customerName && (
                                     <small className="error-message">
-                                        {errors.customerName}
+                                        {
+                                            errors.customerName
+                                        }
                                     </small>
                                 )}
                             </div>
 
+
+                            {/* Date */}
+
                             <div className="form-group">
                                 <label htmlFor="date">
-                                    Date <span>*</span>
+                                    Date{" "}
+                                    <span>*</span>
                                 </label>
 
                                 <input
                                     id="date"
                                     name="date"
                                     type="date"
-                                    value={formData.date}
-                                    onChange={handleHeaderChange}
+                                    value={
+                                        formData.date
+                                    }
+                                    onChange={
+                                        handleHeaderChange
+                                    }
                                     className={
-                                        errors.date ? "input-error" : ""
+                                        errors.date
+                                            ? "input-error"
+                                            : ""
+                                    }
+                                    disabled={
+                                        isSubmitting
                                     }
                                 />
 
@@ -224,18 +459,30 @@ function AddDN() {
                                     </small>
                                 )}
                             </div>
+
                         </div>
                     </div>
 
+
                     <div className="form-divider" />
 
-                    {/* Stock Items */}
+
+                    {/* ================================================== */}
+                    {/* STOCK ITEMS */}
+                    {/* ================================================== */}
+
                     <div className="form-section">
+
                         <div className="line-items-header">
+
                             <div className="form-section-header">
-                                <h2>Stock Items Dispatched</h2>
+                                <h2>
+                                    Stock Items Dispatched
+                                </h2>
+
                                 <p>
-                                    Add all stock items included in this
+                                    Add all stock items
+                                    included in this
                                     dispatch note.
                                 </p>
                             </div>
@@ -243,137 +490,265 @@ function AddDN() {
                             <button
                                 type="button"
                                 className="secondary-add-button"
-                                onClick={handleAddItem}
+                                onClick={
+                                    handleAddItem
+                                }
+                                disabled={
+                                    isLoadingStockItems ||
+                                    isSubmitting
+                                }
                             >
                                 <Plus size={17} />
                                 Add Stock Item
                             </button>
+
                         </div>
 
-                        {formData.items.length === 0 ? (
+
+                        {/* Stock item loading error */}
+
+                        {errors.stockItems && (
+                            <small className="error-message">
+                                {errors.stockItems}
+                            </small>
+                        )}
+
+
+                        {/* Loading */}
+
+                        {isLoadingStockItems ? (
                             <div className="empty-line-items">
-                                <p>No stock items added yet.</p>
+                                <p>
+                                    Loading stock items...
+                                </p>
+                            </div>
+                        ) : formData.items.length === 0 ? (
+
+                            /* Empty state */
+
+                            <div className="empty-line-items">
+
+                                <p>
+                                    No stock items added yet.
+                                </p>
 
                                 <button
                                     type="button"
                                     className="secondary-add-button"
-                                    onClick={handleAddItem}
+                                    onClick={
+                                        handleAddItem
+                                    }
                                 >
                                     <Plus size={17} />
                                     Add Stock Item
                                 </button>
+
                             </div>
+
                         ) : (
+
+                            /* Items */
+
                             <div className="line-items-container">
+
                                 <div className="line-item-header-row">
-                                    <span>Stock Item</span>
-                                    <span>Stock Item ID</span>
-                                    <span>Quantity</span>
-                                    <span>Unit</span>
-                                    <span>Action</span>
+                                    <span>
+                                        Stock Item
+                                    </span>
+
+                                    <span>
+                                        Stock Item ID
+                                    </span>
+
+                                    <span>
+                                        Quantity
+                                    </span>
+
+                                    <span>
+                                        Unit
+                                    </span>
+
+                                    <span>
+                                        Action
+                                    </span>
                                 </div>
 
-                                {formData.items.map((item, index) => {
-                                    const selectedStockItem =
-                                        getStockItem(item.stockItemId);
 
-                                    return (
-                                        <div
-                                            className="line-item-row"
-                                            key={index}
-                                        >
-                                            <div className="form-group">
-                                                <select
-                                                    value={item.stockItemId}
-                                                    onChange={(event) =>
-                                                        handleItemChange(
-                                                            index,
-                                                            "stockItemId",
-                                                            event.target.value
+                                {formData.items.map(
+                                    (item, index) => {
+
+                                        const selectedStockItem =
+                                            getStockItem(
+                                                item.stockItemId
+                                            );
+
+                                        return (
+                                            <div
+                                                className="line-item-row"
+                                                key={index}
+                                            >
+
+                                                {/* Stock Item */}
+
+                                                <div className="form-group">
+                                                    <select
+                                                        value={
+                                                            item.stockItemId
+                                                        }
+                                                        onChange={(
+                                                            event
+                                                        ) =>
+                                                            handleItemChange(
+                                                                index,
+                                                                "stockItemId",
+                                                                event
+                                                                    .target
+                                                                    .value
+                                                            )
+                                                        }
+                                                        disabled={
+                                                            isSubmitting
+                                                        }
+                                                    >
+                                                        <option value="">
+                                                            Select stock item
+                                                        </option>
+
+                                                        {stockItems.map(
+                                                            (
+                                                                stockItem
+                                                            ) => (
+                                                                <option
+                                                                    key={
+                                                                        stockItem.id
+                                                                    }
+                                                                    value={
+                                                                        stockItem.id
+                                                                    }
+                                                                >
+                                                                    {
+                                                                        stockItem.name
+                                                                    }
+                                                                </option>
+                                                            )
+                                                        )}
+                                                    </select>
+                                                </div>
+
+
+                                                {/* Stock Item ID */}
+
+                                                <div className="line-item-id">
+                                                    {selectedStockItem
+                                                        ? selectedStockItem.id
+                                                        : "—"}
+                                                </div>
+
+
+                                                {/* Quantity */}
+
+                                                <div className="form-group">
+                                                    <input
+                                                        type="number"
+                                                        min="1"
+                                                        step="1"
+                                                        value={
+                                                            item.quantity
+                                                        }
+                                                        onChange={(
+                                                            event
+                                                        ) =>
+                                                            handleItemChange(
+                                                                index,
+                                                                "quantity",
+                                                                event
+                                                                    .target
+                                                                    .value
+                                                            )
+                                                        }
+                                                        placeholder="Quantity"
+                                                        disabled={
+                                                            isSubmitting
+                                                        }
+                                                    />
+                                                </div>
+
+
+                                                {/* Unit */}
+
+                                                <div className="line-item-unit">
+                                                    {selectedStockItem
+                                                        ? selectedStockItem.unit
+                                                        : "—"}
+                                                </div>
+
+
+                                                {/* Remove */}
+
+                                                <button
+                                                    type="button"
+                                                    className="remove-item-button"
+                                                    onClick={() =>
+                                                        handleRemoveItem(
+                                                            index
                                                         )
+                                                    }
+                                                    title="Remove item"
+                                                    disabled={
+                                                        isSubmitting
                                                     }
                                                 >
-                                                    <option value="">
-                                                        Select stock item
-                                                    </option>
+                                                    <Trash2
+                                                        size={18}
+                                                    />
+                                                </button>
 
-                                                    {stockItems.map(
-                                                        (stockItem) => (
-                                                            <option
-                                                                key={
-                                                                    stockItem.id
-                                                                }
-                                                                value={
-                                                                    stockItem.id
-                                                                }
-                                                            >
-                                                                {
-                                                                    stockItem.name
-                                                                }
-                                                            </option>
-                                                        )
-                                                    )}
-                                                </select>
                                             </div>
+                                        );
+                                    }
+                                )}
 
-                                            <div className="line-item-id">
-                                                {selectedStockItem
-                                                    ? selectedStockItem.id
-                                                    : "—"}
-                                            </div>
-
-                                            <div className="form-group">
-                                                <input
-                                                    type="number"
-                                                    min="1"
-                                                    step="1"
-                                                    value={item.quantity}
-                                                    onChange={(event) =>
-                                                        handleItemChange(
-                                                            index,
-                                                            "quantity",
-                                                            event.target.value
-                                                        )
-                                                    }
-                                                    placeholder="Quantity"
-                                                />
-                                            </div>
-
-                                            <div className="line-item-unit">
-                                                {selectedStockItem
-                                                    ? selectedStockItem.unit
-                                                    : "—"}
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className="remove-item-button"
-                                                onClick={() =>
-                                                    handleRemoveItem(index)
-                                                }
-                                                title="Remove item"
-                                            >
-                                                <Trash2 size={18} />
-                                            </button>
-                                        </div>
-                                    );
-                                })}
                             </div>
                         )}
+
+
+                        {/* Item error */}
 
                         {errors.items && (
                             <small className="error-message">
                                 {errors.items}
                             </small>
                         )}
+
                     </div>
 
-                    {/* Actions */}
+
+                    {/* ================================================== */}
+                    {/* SUBMIT ERROR */}
+                    {/* ================================================== */}
+
+                    {errors.submit && (
+                        <div className="error-message">
+                            {errors.submit}
+                        </div>
+                    )}
+
+
+                    {/* ================================================== */}
+                    {/* ACTIONS */}
+                    {/* ================================================== */}
+
                     <div className="form-actions">
+
                         <button
                             type="button"
                             className="secondary-button"
-                            onClick={handleCancel}
+                            onClick={
+                                handleCancel
+                            }
+                            disabled={
+                                isSubmitting
+                            }
                         >
                             Cancel
                         </button>
@@ -381,13 +756,23 @@ function AddDN() {
                         <button
                             type="submit"
                             className="primary-button form-submit-button"
+                            disabled={
+                                isSubmitting ||
+                                isLoadingStockItems
+                            }
                         >
                             <Save size={18} />
-                            Add Dispatch Note
+
+                            {isSubmitting
+                                ? "Adding Dispatch Note..."
+                                : "Add Dispatch Note"}
                         </button>
+
                     </div>
+
                 </form>
             </div>
+
         </div>
     );
 }

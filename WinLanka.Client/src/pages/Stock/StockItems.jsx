@@ -1,119 +1,78 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Eye, PackagePlus, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getAllStockItems } from "../../services/api";
+import { getCurrentUser } from "../../services/auth";
 
 function StockItems() {
 
     const navigate = useNavigate();
+    const currentUser = getCurrentUser();
 
-    // Temporary role.
-    // Later this will come from AuthContext/JWT.
-    const role = "Storekeeper";
+    const isStorekeeper = currentUser?.roles?.includes("Storekeeper");
+
+    const isStockManager = currentUser?.roles?.includes("Stock Manager");
 
     const [searchTerm, setSearchTerm] = useState("");
     const [currentPage, setCurrentPage] = useState(1);
-
-    // Selected stock item for View modal
     const [selectedItem, setSelectedItem] = useState(null);
+    const [stockItems, setStockItems] = useState([]);
+
+    const [isLoadingStocks, setIsLoadingStocks] = useState(true);
+
+    const [stocksError, setStocksError] = useState("");
+
+    const loadStockItems = async () => {
+
+    console.log("🚀 STOCK ITEMS PAGE: loadStockItems() STARTED");
+
+    try {
+        setIsLoadingStocks(true);
+        setStocksError("");
+
+        console.log("🚀 Calling getAllStockItems()...");
+
+        const data = await getAllStockItems();
+
+        console.log("✅ Stock API returned:", data);
+
+        const formattedItems = data.map((item) => ({
+            id: item.StockItemId,
+            name: item.StockName || "",
+            category: item.Category || "",
+            unit: item.Unit || "",
+            reorderLevel: item.ReorderLevel ?? 0
+        }));
+
+        console.log("✅ Formatted items:", formattedItems);
+
+        setStockItems(formattedItems);
+
+    } catch (error) {
+
+        console.error("❌ STOCK ITEMS ERROR");
+        console.error("Error:", error);
+        console.error("Message:", error?.message);
+        console.error("Stack:", error?.stack);
+
+        setStocksError(
+            error.message ||
+            "Unable to load stock items."
+        );
+
+    } finally {
+
+        setIsLoadingStocks(false);
+
+        console.log("🏁 STOCK ITEMS PAGE: loadStockItems() FINISHED");
+    }
+};
+
+    useEffect(() => {
+        loadStockItems();
+    }, []);
 
     const itemsPerPage = 5;
-
-    // Temporary data.
-    // Later this will come from the Inventory Azure Function API.
-    const stockItems = [
-        {
-            id: 1,
-            name: "Basic T-Shirt",
-            category: "Men",
-            unit: "pcs",
-            reorderLevel: 50
-        },
-        {
-            id: 2,
-            name: "Formal Shirt",
-            category: "Men",
-            unit: "pcs",
-            reorderLevel: 30
-        },
-        {
-            id: 3,
-            name: "Ladies Blouse",
-            category: "Women",
-            unit: "pcs",
-            reorderLevel: 20
-        },
-        {
-            id: 4,
-            name: "Cotton Fabric",
-            category: "Casual",
-            unit: "m",
-            reorderLevel: 100
-        },
-        {
-            id: 5,
-            name: "Denim Fabric",
-            category: "Casual",
-            unit: "m",
-            reorderLevel: 80
-        },
-        {
-            id: 6,
-            name: "Polo Shirt",
-            category: "Men",
-            unit: "pcs",
-            reorderLevel: 40
-        },
-        {
-            id: 7,
-            name: "Women's Trousers",
-            category: "Women",
-            unit: "pcs",
-            reorderLevel: 25
-        },
-        {
-            id: 8,
-            name: "Women's Skirt",
-            category: "Women",
-            unit: "pcs",
-            reorderLevel: 15
-        },
-        {
-            id: 9,
-            name: "Men's Jeans",
-            category: "Men",
-            unit: "pcs",
-            reorderLevel: 35
-        },
-        {
-            id: 10,
-            name: "Linen Fabric",
-            category: "Casual",
-            unit: "m",
-            reorderLevel: 60
-        },
-        {
-            id: 11,
-            name: "Sports T-Shirt",
-            category: "Men",
-            unit: "pcs",
-            reorderLevel: 45
-
-        },
-        {
-            id: 12,
-            name: "Cotton Shorts",
-            category: "Men",
-            unit: "pcs",
-            reorderLevel: 20
-        },
-        {
-            id: 13,
-            name: "Women's Jacket",
-            category: "Women",
-            unit: "pcs",
-            reorderLevel: 10
-        }
-    ];
 
     // Search by ID, name, category, or unit
     const filteredItems = useMemo(() => {
@@ -131,7 +90,7 @@ function StockItems() {
             item.unit.toLowerCase().includes(search)
         );
 
-    }, [searchTerm]);
+    }, [searchTerm, stockItems]);
 
     // Pagination
     const totalPages = Math.ceil(
@@ -172,7 +131,7 @@ function StockItems() {
                     <h1>Stock Items</h1>
                 </div>
 
-                {role === "Storekeeper" && (
+                {isStorekeeper && (
                     <button
                         type="button"
                         className="primary-button"
@@ -223,8 +182,29 @@ function StockItems() {
                         </thead>
 
                         <tbody>
+                            {isLoadingStocks ? (
 
-                            {paginatedItems.length > 0 ? (
+                                <tr>
+                                    <td
+                                        colSpan="6"
+                                        className="empty-table"
+                                    >
+                                        Loading stock items...
+                                    </td>
+                                </tr>
+
+                            ) : stocksError ? (
+
+                                <tr>
+                                    <td
+                                        colSpan="6"
+                                        className="empty-table"
+                                    >
+                                        {stocksError}
+                                    </td>
+                                </tr>
+
+                            ) : paginatedItems.length > 0 ? (
 
                                 paginatedItems.map((item) => (
 
@@ -249,6 +229,7 @@ function StockItems() {
                                         <td>
                                             {item.reorderLevel}
                                         </td>
+
                                         <td>
                                             <button
                                                 type="button"
@@ -261,7 +242,6 @@ function StockItems() {
                                                 <Eye size={16} />
                                                 View
                                             </button>
-
                                         </td>
 
                                     </tr>
@@ -428,7 +408,7 @@ function StockItems() {
                                 <div className="modal-detail-item">
                                     <span>
                                         Reorder Level
-                                    </span> 
+                                    </span>
                                     <strong>
                                         {selectedItem.reorderLevel}
                                     </strong>

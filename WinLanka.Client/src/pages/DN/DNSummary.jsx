@@ -1,211 +1,458 @@
-import { useMemo, useState } from "react";
-import { Plus, Search, Eye,  X} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Plus, Search, Eye, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+import {
+    getAllDispatchNotes
+} from "../../services/api";
 
 function DNSummary() {
     const navigate = useNavigate();
 
-    // Temporary role. Later this will come from AuthContext/JWT.
+    // Temporary role.
+    // Later this will come from AuthContext/JWT.
     const role = "Storekeeper";
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [currentPage, setCurrentPage] = useState(1);
+    const [dispatchNotes, setDispatchNotes] =
+        useState([]);
+
+    const [isLoading, setIsLoading] =
+        useState(true);
+
+    const [error, setError] =
+        useState("");
+
+    const [searchTerm, setSearchTerm] =
+        useState("");
+
+    const [currentPage, setCurrentPage] =
+        useState(1);
+
     const itemsPerPage = 10;
-     // Selected DN for View modal
-    const [selectedDN, setSelectedDN] = useState(null);
 
+    // Selected DN for View modal
+    const [selectedDN, setSelectedDN] =
+        useState(null);
 
-    const dispatchNotes = [
-        {
-            id: 2001,
-            customer: "Fashion World",
-            date: "2026-09-15",
-            items: [
-                { name: "Basic T-Shirt", quantity: 200, unit: "pcs" },
-                { name: "Cotton Fabric", quantity: 100, unit: "m" }
-            ]
-        },
-        {
-            id: 2002,
-            customer: "Lanka Fashion House",
-            date: "2026-09-16",
-            items: [
-                { name: "Formal Shirt", quantity: 150, unit: "pcs" },
-                { name: "Denim Fabric", quantity: 80, unit: "m" }
-            ]
-        },
-        {
-            id: 2003,
-            customer: "Colombo Apparel",
-            date: "2026-09-17",
-            items: [
-                { name: "Polo Shirt", quantity: 250, unit: "pcs" }
-            ]
-        },
-        {
-            id: 2004,
-            customer: "Premium Clothing",
-            date: "2026-09-18",
-            items: [
-                { name: "Women's Blouse", quantity: 180, unit: "pcs" },
-                { name: "Women's Trousers", quantity: 120, unit: "pcs" }
-            ]
-        },
-        {
-            id: 2005,
-            customer: "Fashion World",
-            date: "2026-09-19",
-            items: [
-                { name: "Men's Jeans", quantity: 300, unit: "pcs" }
-            ]
-        }
-    ];
+    // =========================================
+    // GET ALL DISPATCH NOTES
+    // =========================================
+
+    useEffect(() => {
+        const loadDispatchNotes = async () => {
+            try {
+                setIsLoading(true);
+                setError("");
+
+                const data =
+                    await getAllDispatchNotes();
+
+                console.log(
+                    "Dispatch Notes API response:",
+                    data
+                );
+
+                /*
+                 * The API response is expected to be:
+                 *
+                 * [
+                 *   {
+                 *     dispatchNoteId,
+                 *     customer,
+                 *     date,
+                 *     dispatchItems: [...]
+                 *   }
+                 * ]
+                 */
+
+                const formattedDispatchNotes =
+                    data.map((dispatchNote) => ({
+                        id:
+                            dispatchNote.dispatchNoteId ??
+                            dispatchNote.DispatchNoteId,
+
+                        customer:
+                            dispatchNote.customer ??
+                            dispatchNote.Customer ??
+                            "",
+
+                        date:
+                            dispatchNote.date ??
+                            dispatchNote.Date,
+
+                        items: (
+                            dispatchNote.dispatchItems ??
+                            dispatchNote.DispatchItems ??
+                            []
+                        ).map((item) => ({
+                            id:
+                                item.dispatchItemId ??
+                                item.DispatchItemId,
+
+                            stockItemId:
+                                item.stockItemId ??
+                                item.StockItemId,
+
+                            name:
+                                item.stockItem?.stockName ??
+                                item.stockItem?.StockName ??
+                                item.StockItem?.stockName ??
+                                item.StockItem?.StockName ??
+                                "",
+
+                            quantity:
+                                item.quantity ??
+                                item.Quantity,
+
+                            unit:
+                                item.stockItem?.unit ??
+                                item.stockItem?.Unit ??
+                                item.StockItem?.unit ??
+                                item.StockItem?.Unit ??
+                                ""
+                        }))
+                    }));
+
+                setDispatchNotes(
+                    formattedDispatchNotes
+                );
+            } catch (error) {
+                console.error(
+                    "Failed to load Dispatch Notes:",
+                    error
+                );
+
+                setError(
+                    error.message ||
+                    "Unable to load Dispatch Notes."
+                );
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        loadDispatchNotes();
+    }, []);
+
+    // =========================================
+    // SEARCH
+    // =========================================
 
     const filteredDispatchNotes = useMemo(() => {
-        const search = searchTerm.toLowerCase().trim();
+        const search =
+            searchTerm
+                .toLowerCase()
+                .trim();
 
         if (!search) {
             return dispatchNotes;
         }
 
         return dispatchNotes.filter((dn) =>
-            dn.id.toString().includes(search) ||
-            dn.customer.toLowerCase().includes(search) ||
-            dn.date.includes(search) ||
+            dn.id
+                .toString()
+                .includes(search) ||
+
+            dn.customer
+                .toLowerCase()
+                .includes(search) ||
+
+            dn.date
+                ?.toString()
+                .includes(search) ||
+
             dn.items.some((item) =>
-                item.name.toLowerCase().includes(search)
+                item.name
+                    .toLowerCase()
+                    .includes(search)
             )
         );
-    }, [searchTerm]);
+    }, [
+        searchTerm,
+        dispatchNotes
+    ]);
+
+    // =========================================
+    // PAGINATION
+    // =========================================
 
     const totalPages = Math.ceil(
-        filteredDispatchNotes.length / itemsPerPage
+        filteredDispatchNotes.length /
+        itemsPerPage
     );
 
-    const paginatedDispatchNotes = filteredDispatchNotes.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    );
+    const paginatedDispatchNotes =
+        filteredDispatchNotes.slice(
+            (currentPage - 1) *
+                itemsPerPage,
+
+            currentPage *
+                itemsPerPage
+        );
+
+    // =========================================
+    // HANDLERS
+    // =========================================
 
     const handleSearch = (event) => {
-        setSearchTerm(event.target.value);
+        setSearchTerm(
+            event.target.value
+        );
+
         setCurrentPage(1);
     };
 
     const handleAddDispatchNote = () => {
-        navigate("/dispatch-notes/add");
+        navigate(
+            "/dispatch-notes/add"
+        );
     };
 
-     // Open View modal
+    // Open View modal
     const handleViewDispatchNote = (dn) => {
         setSelectedDN(dn);
     };
-
 
     // Close View modal
     const handleCloseModal = () => {
         setSelectedDN(null);
     };
 
+    // =========================================
+    // FORMAT DATE
+    // =========================================
+
+    const formatDate = (date) => {
+        if (!date) {
+            return "";
+        }
+
+        return date.split("T")[0];
+    };
+
+    // =========================================
+    // RENDER
+    // =========================================
+
     return (
         <div className="page-container">
 
+            {/* ================================= */}
+            {/* PAGE HEADER */}
+            {/* ================================= */}
+
             <div className="page-header">
+
                 <div>
-                    <h1>Dispatch Note Summary</h1>
+                    <h1>
+                        Dispatch Note Summary
+                    </h1>
                 </div>
 
                 {role === "Storekeeper" && (
                     <button
                         type="button"
                         className="primary-button"
-                        onClick={handleAddDispatchNote}
+                        onClick={
+                            handleAddDispatchNote
+                        }
                     >
                         <Plus size={18} />
                         Add Dispatch Note
                     </button>
                 )}
+
             </div>
+
+
+            {/* ================================= */}
+            {/* TABLE CARD */}
+            {/* ================================= */}
 
             <div className="table-card">
 
+                {/* ================================= */}
+                {/* TOOLBAR */}
+                {/* ================================= */}
+
                 <div className="table-toolbar">
+
                     <div className="search-box">
+
                         <Search size={18} />
 
                         <input
                             type="text"
                             placeholder="Search by DN ID, customer, date or stock item..."
                             value={searchTerm}
-                            onChange={handleSearch}
+                            onChange={
+                                handleSearch
+                            }
                         />
+
                     </div>
+
                 </div>
 
+
+                {/* ================================= */}
+                {/* ERROR */}
+                {/* ================================= */}
+
+                {error && (
+                    <div className="error-message">
+                        {error}
+                    </div>
+                )}
+
+
+                {/* ================================= */}
+                {/* TABLE */}
+                {/* ================================= */}
+
                 <div className="table-wrapper">
+
                     <table className="data-table">
 
                         <thead>
                             <tr>
-                                <th>DN ID</th>
-                                <th>Customer</th>
-                                <th>Date</th>
-                                <th>Items Dispatched</th>
-                                <th>Action</th>
+
+                                <th>
+                                    DN ID
+                                </th>
+
+                                <th>
+                                    Customer
+                                </th>
+
+                                <th>
+                                    Date
+                                </th>
+
+                                <th>
+                                    Items Dispatched
+                                </th>
+
+                                <th>
+                                    Action
+                                </th>
+
                             </tr>
                         </thead>
 
+
                         <tbody>
-                            {paginatedDispatchNotes.length > 0 ? (
-                                paginatedDispatchNotes.map((dn) => (
-                                    <tr key={dn.id}>
 
-                                        <td>{dn.id}</td>
+                            {isLoading ? (
 
-                                        <td className="stock-item-name">
-                                            {dn.customer}
-                                        </td>
+                                <tr>
+                                    <td
+                                        colSpan="5"
+                                        className="empty-table"
+                                    >
+                                        Loading dispatch notes...
+                                    </td>
+                                </tr>
 
-                                        <td>{dn.date}</td>
+                            ) : paginatedDispatchNotes.length > 0 ? (
 
-                                        <td>
-                                            <div className="grn-item-list">
-                                                {dn.items.map((item, index) => (
-                                                    <div
-                                                        key={`${dn.id}-${index}`}
-                                                        className="grn-item"
-                                                    >
-                                                        <span className="grn-item-name">
-                                                            {item.name}
-                                                        </span>
+                                paginatedDispatchNotes.map(
+                                    (dn) => (
 
-                                                        <span className="grn-item-quantity">
-                                                            {item.quantity} {item.unit}
-                                                        </span>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </td>
+                                        <tr
+                                            key={dn.id}
+                                        >
 
-                                        <td>
-                                            <button
-                                                type="button"
-                                                className="view-button"
-                                                title="View Dispatch Note"
-                                                onClick={() =>
-                                                    handleViewDispatchNote(
-                                                        dn
-                                                    )
-                                                }
-                                            >
-                                                <Eye size={16} />
-                                                View
-                                            </button>
-                                        </td>
+                                            {/* DN ID */}
+                                            <td>
+                                                {dn.id}
+                                            </td>
 
-                                    </tr>
-                                ))
+
+                                            {/* Customer */}
+                                            <td className="stock-item-name">
+                                                {dn.customer}
+                                            </td>
+
+
+                                            {/* Date */}
+                                            <td>
+                                                {formatDate(
+                                                    dn.date
+                                                )}
+                                            </td>
+
+
+                                            {/* Items */}
+                                            <td>
+
+                                                <div className="grn-item-list">
+
+                                                    {dn.items.map(
+                                                        (
+                                                            item,
+                                                            index
+                                                        ) => (
+
+                                                            <div
+                                                                key={
+                                                                    item.id ??
+                                                                    `${dn.id}-${index}`
+                                                                }
+                                                                className="grn-item"
+                                                            >
+
+                                                                <span className="grn-item-name">
+                                                                    {
+                                                                        item.name
+                                                                    }
+                                                                </span>
+
+                                                                <span className="grn-item-quantity">
+                                                                    {
+                                                                        item.quantity
+                                                                    }{" "}
+                                                                    {
+                                                                        item.unit
+                                                                    }
+                                                                </span>
+
+                                                            </div>
+
+                                                        )
+                                                    )}
+
+                                                </div>
+
+                                            </td>
+
+
+                                            {/* Action */}
+                                            <td>
+
+                                                <button
+                                                    type="button"
+                                                    className="view-button"
+                                                    title="View Dispatch Note"
+                                                    onClick={() =>
+                                                        handleViewDispatchNote(
+                                                            dn
+                                                        )
+                                                    }
+                                                >
+                                                    <Eye size={16} />
+                                                    View
+                                                </button>
+
+                                            </td>
+
+                                        </tr>
+
+                                    )
+                                )
+
                             ) : (
+
                                 <tr>
                                     <td
                                         colSpan="5"
@@ -214,44 +461,67 @@ function DNSummary() {
                                         No dispatch notes found.
                                     </td>
                                 </tr>
+
                             )}
+
                         </tbody>
 
                     </table>
+
                 </div>
 
+
+                {/* ================================= */}
+                {/* PAGINATION */}
+                {/* ================================= */}
+
                 {totalPages > 1 && (
+
                     <div className="pagination">
 
                         <button
                             type="button"
-                            disabled={currentPage === 1}
+                            disabled={
+                                currentPage === 1
+                            }
                             onClick={() =>
-                                setCurrentPage(currentPage - 1)
+                                setCurrentPage(
+                                    currentPage - 1
+                                )
                             }
                         >
                             Previous
                         </button>
 
+
                         <span>
-                            Page {currentPage} of {totalPages}
+                            Page {currentPage} of{" "}
+                            {totalPages}
                         </span>
+
 
                         <button
                             type="button"
-                            disabled={currentPage === totalPages}
+                            disabled={
+                                currentPage ===
+                                totalPages
+                            }
                             onClick={() =>
-                                setCurrentPage(currentPage + 1)
+                                setCurrentPage(
+                                    currentPage + 1
+                                )
                             }
                         >
                             Next
                         </button>
 
                     </div>
+
                 )}
 
             </div>
-         
+
+
             {/* ================================= */}
             {/* VIEW DN MODAL */}
             {/* ================================= */}
@@ -260,7 +530,9 @@ function DNSummary() {
 
                 <div
                     className="modal-overlay"
-                    onClick={handleCloseModal}
+                    onClick={
+                        handleCloseModal
+                    }
                 >
 
                     <div
@@ -270,22 +542,33 @@ function DNSummary() {
                         }
                     >
 
-                        {/* Modal Header */}
+                        {/* ================================= */}
+                        {/* MODAL HEADER */}
+                        {/* ================================= */}
+
                         <div className="modal-header">
 
                             <div>
-                                <h2>View Dispatched Note</h2>
+
+                                <h2>
+                                    View Dispatched Note
+                                </h2>
 
                                 <p>
-                                    View the complete DN information and
+                                    View the complete DN
+                                    information and
                                     dispatched items.
                                 </p>
+
                             </div>
+
 
                             <button
                                 type="button"
                                 className="modal-close-button"
-                                onClick={handleCloseModal}
+                                onClick={
+                                    handleCloseModal
+                                }
                                 aria-label="Close"
                             >
                                 <X size={20} />
@@ -294,13 +577,18 @@ function DNSummary() {
                         </div>
 
 
-                        {/* Modal Body */}
+                        {/* ================================= */}
+                        {/* MODAL BODY */}
+                        {/* ================================= */}
+
                         <div className="modal-body">
 
-                            {/* DN Information */}
+                            {/* DN INFORMATION */}
+
                             <div className="modal-detail-grid">
 
                                 {/* DN ID */}
+
                                 <div className="modal-detail-item">
 
                                     <span>
@@ -308,13 +596,16 @@ function DNSummary() {
                                     </span>
 
                                     <strong>
-                                        {selectedDN.id}
+                                        {
+                                            selectedDN.id
+                                        }
                                     </strong>
 
                                 </div>
 
 
                                 {/* Date */}
+
                                 <div className="modal-detail-item">
 
                                     <span>
@@ -322,13 +613,16 @@ function DNSummary() {
                                     </span>
 
                                     <strong>
-                                        {selectedDN.date}
+                                        {formatDate(
+                                            selectedDN.date
+                                        )}
                                     </strong>
 
                                 </div>
 
 
-                                {/* Supplier */}
+                                {/* Customer */}
+
                                 <div className="modal-detail-item modal-detail-full">
 
                                     <span>
@@ -336,7 +630,9 @@ function DNSummary() {
                                     </span>
 
                                     <strong>
-                                        {selectedDN.customer}
+                                        {
+                                            selectedDN.customer
+                                        }
                                     </strong>
 
                                 </div>
@@ -344,65 +640,113 @@ function DNSummary() {
                             </div>
 
 
-                            {/* Dispatched Items Section */}
+                            {/* ================================= */}
+                            {/* DISPATCHED ITEMS */}
+                            {/* ================================= */}
+
                             <div className="modal-items-section">
 
                                 <div className="modal-items-header">
 
                                     <div>
+
                                         <h3>
                                             Stock Items Dispatched
                                         </h3>
 
                                         <p>
-                                            {selectedDN.items.length}{" "}
-                                            {selectedDN.items.length === 1
-                                                ? "item"
-                                                : "items"}{" "}
-                                            dispatched in this DN.
+                                            {
+                                                selectedDN
+                                                    .items
+                                                    .length
+                                            }{" "}
+
+                                            {
+                                                selectedDN
+                                                    .items
+                                                    .length === 1
+                                                    ? "item"
+                                                    : "items"
+                                            }{" "}
+
+                                            dispatched in
+                                            this DN.
                                         </p>
+
                                     </div>
 
                                 </div>
 
 
                                 {/* Items Table */}
+
                                 <div className="modal-items-table-wrapper">
 
                                     <table className="modal-items-table">
 
                                         <thead>
+
                                             <tr>
-                                                <th>#</th>
-                                                <th>Stock Item</th>
-                                                <th>Quantity</th>
-                                                <th>Unit</th>
+
+                                                <th>
+                                                    #
+                                                </th>
+
+                                                <th>
+                                                    Stock Item
+                                                </th>
+
+                                                <th>
+                                                    Quantity
+                                                </th>
+
+                                                <th>
+                                                    Unit
+                                                </th>
+
                                             </tr>
+
                                         </thead>
+
 
                                         <tbody>
 
                                             {selectedDN.items.map(
-                                                (item, index) => (
+                                                (
+                                                    item,
+                                                    index
+                                                ) => (
 
                                                     <tr
-                                                        key={`${selectedDN.id}-item-${index}`}
+                                                        key={
+                                                            item.id ??
+                                                            `${selectedDN.id}-item-${index}`
+                                                        }
                                                     >
 
                                                         <td>
                                                             {index + 1}
                                                         </td>
 
+
                                                         <td className="modal-table-item-name">
-                                                            {item.name}
+                                                            {
+                                                                item.name
+                                                            }
                                                         </td>
 
-                                                        <td>
-                                                            {item.quantity}
-                                                        </td>
 
                                                         <td>
-                                                            {item.unit}
+                                                            {
+                                                                item.quantity
+                                                            }
+                                                        </td>
+
+
+                                                        <td>
+                                                            {
+                                                                item.unit
+                                                            }
                                                         </td>
 
                                                     </tr>
@@ -421,13 +765,18 @@ function DNSummary() {
                         </div>
 
 
-                        {/* Modal Footer */}
+                        {/* ================================= */}
+                        {/* MODAL FOOTER */}
+                        {/* ================================= */}
+
                         <div className="modal-footer">
 
                             <button
                                 type="button"
                                 className="secondary-button"
-                                onClick={handleCloseModal}
+                                onClick={
+                                    handleCloseModal
+                                }
                             >
                                 Close
                             </button>
@@ -438,9 +787,11 @@ function DNSummary() {
 
                 </div>
 
-            )}   
+            )}
+
         </div>
     );
 }
 
 export default DNSummary;
+

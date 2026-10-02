@@ -6,10 +6,10 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using WinLanka.Inventory.Security.Interfaces;
 using WinLanka.Server.Models;
-using WinLanka.Users.Security.Interfaces;
 
-namespace WinLanka.Users.Security
+namespace WinLanka.Inventory.Security
 {
     public class TokenService : ITokenService
     {
@@ -68,19 +68,19 @@ namespace WinLanka.Users.Security
         {
             try
             {
-                var key = Encoding.ASCII.GetBytes( _configuration["JwtKey"]!);
+                var key = Encoding.ASCII.GetBytes(_configuration["JwtKey"]!);
 
                 var tokenHandler = new JwtSecurityTokenHandler();
 
                 var validationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(key),
-                        ValidateIssuer = false,
-                        ValidateAudience = false,
-                        ValidateLifetime = true,
-                        ClockSkew = TimeSpan.FromMinutes(1)
-                    };
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ValidateLifetime = true,
+                    ClockSkew = TimeSpan.FromMinutes(1)
+                };
 
                 var principal = tokenHandler.ValidateToken(token, validationParameters, out _);
                 return principal;

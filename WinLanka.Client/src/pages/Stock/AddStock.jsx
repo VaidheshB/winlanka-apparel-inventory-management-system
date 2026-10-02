@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ArrowLeft, PackagePlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { addStockItem } from "../../services/api";
 
 function AddStock() {
     const navigate = useNavigate();
@@ -13,6 +14,7 @@ function AddStock() {
     });
 
     const [errors, setErrors] = useState({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const categories = [
         "Men",
@@ -45,18 +47,26 @@ function AddStock() {
         const newErrors = {};
 
         if (!formData.stockItemName.trim()) {
-            newErrors.stockItemName = "Stock item name is required.";
+            newErrors.stockItemName =
+                "Stock item name is required.";
         }
 
         if (!formData.category) {
-            newErrors.category = "Please select a category.";
+            newErrors.category =
+                "Please select a category.";
         }
 
         if (!formData.unit) {
-            newErrors.unit = "Please select a unit.";
+            newErrors.unit =
+                "Please select a unit.";
         }
-         if (!formData.reorderLevel) {
-            newErrors.reorderLevel = "Reorder level is required.";
+
+        if (
+            formData.reorderLevel === "" ||
+            Number(formData.reorderLevel) < 0
+        ) {
+            newErrors.reorderLevel =
+                "Please enter a valid reorder level.";
         }
 
         setErrors(newErrors);
@@ -64,18 +74,80 @@ function AddStock() {
         return Object.keys(newErrors).length === 0;
     };
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         if (!validateForm()) {
             return;
         }
 
-        console.log("Stock item data:", formData);
+        try {
+            setIsSubmitting(true);
 
-        // API integration will be added later.
+            setErrors({});
 
-        navigate("/stock");
+            const stockItem = {
+                stockName:
+                    formData.stockItemName.trim(),
+
+                category:
+                    formData.category,
+
+                unit:
+                    formData.unit,
+
+                reorderLevel:
+                    Number(formData.reorderLevel)
+            };
+
+            console.log(
+                "========== ADD STOCK =========="
+            );
+
+            console.log(
+                "Sending stock item:",
+                stockItem
+            );
+
+            const response =
+                await addStockItem(stockItem);
+
+            console.log(
+                "Stock item added successfully:",
+                response
+            );
+
+            console.log(
+                "==============================="
+            );
+
+            navigate("/stock");
+
+        } catch (error) {
+
+            console.error(
+                "========== ADD STOCK ERROR =========="
+            );
+
+            console.error("Error:", error);
+            console.error(
+                "Message:",
+                error.message
+            );
+
+            console.error(
+                "======================================"
+            );
+
+            setErrors({
+                submit:
+                    error.message ||
+                    "Unable to add stock item."
+            });
+
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleCancel = () => {
@@ -84,6 +156,7 @@ function AddStock() {
 
     return (
         <div className="page-container">
+
             <div className="form-page-header">
                 <div>
                     <button
@@ -100,10 +173,15 @@ function AddStock() {
             </div>
 
             <div className="form-card">
+
                 <form onSubmit={handleSubmit}>
+
                     <div className="form-section">
+
                         <div className="form-section-header">
-                            <h2>Stock Item Information</h2>
+                            <h2>
+                                Stock Item Information
+                            </h2>
 
                             <p>
                                 Enter the details of the new stock item.
@@ -111,17 +189,22 @@ function AddStock() {
                         </div>
 
                         <div className="form-grid">
+
                             {/* Stock Item Name */}
                             <div className="form-group">
+
                                 <label htmlFor="stockItemName">
-                                    Stock Item Name <span>*</span>
+                                    Stock Item Name{" "}
+                                    <span>*</span>
                                 </label>
 
                                 <input
                                     id="stockItemName"
                                     name="stockItemName"
                                     type="text"
-                                    value={formData.stockItemName}
+                                    value={
+                                        formData.stockItemName
+                                    }
                                     onChange={handleChange}
                                     placeholder="Enter stock item name"
                                     className={
@@ -133,21 +216,28 @@ function AddStock() {
 
                                 {errors.stockItemName && (
                                     <small className="error-message">
-                                        {errors.stockItemName}
+                                        {
+                                            errors.stockItemName
+                                        }
                                     </small>
                                 )}
+
                             </div>
 
                             {/* Category */}
                             <div className="form-group">
+
                                 <label htmlFor="category">
-                                    Category <span>*</span>
+                                    Category{" "}
+                                    <span>*</span>
                                 </label>
 
                                 <select
                                     id="category"
                                     name="category"
-                                    value={formData.category}
+                                    value={
+                                        formData.category
+                                    }
                                     onChange={handleChange}
                                     className={
                                         errors.category
@@ -159,25 +249,31 @@ function AddStock() {
                                         Select category
                                     </option>
 
-                                    {categories.map((category) => (
-                                        <option
-                                            key={category}
-                                            value={category}
-                                        >
-                                            {category}
-                                        </option>
-                                    ))}
+                                    {categories.map(
+                                        (category) => (
+                                            <option
+                                                key={category}
+                                                value={category}
+                                            >
+                                                {category}
+                                            </option>
+                                        )
+                                    )}
                                 </select>
 
                                 {errors.category && (
                                     <small className="error-message">
-                                        {errors.category}
+                                        {
+                                            errors.category
+                                        }
                                     </small>
                                 )}
+
                             </div>
 
                             {/* Unit */}
                             <div className="form-group">
+
                                 <label htmlFor="unit">
                                     Unit <span>*</span>
                                 </label>
@@ -185,7 +281,9 @@ function AddStock() {
                                 <select
                                     id="unit"
                                     name="unit"
-                                    value={formData.unit}
+                                    value={
+                                        formData.unit
+                                    }
                                     onChange={handleChange}
                                     className={
                                         errors.unit
@@ -197,14 +295,16 @@ function AddStock() {
                                         Select unit
                                     </option>
 
-                                    {units.map((unit) => (
-                                        <option
-                                            key={unit}
-                                            value={unit}
-                                        >
-                                            {unit}
-                                        </option>
-                                    ))}
+                                    {units.map(
+                                        (unit) => (
+                                            <option
+                                                key={unit}
+                                                value={unit}
+                                            >
+                                                {unit}
+                                            </option>
+                                        )
+                                    )}
                                 </select>
 
                                 {errors.unit && (
@@ -212,17 +312,25 @@ function AddStock() {
                                         {errors.unit}
                                     </small>
                                 )}
+
                             </div>
+
                             {/* Reorder Level */}
                             <div className="form-group">
+
                                 <label htmlFor="reorderLevel">
-                                    Reorder Level <span>*</span>
+                                    Reorder Level{" "}
+                                    <span>*</span>
                                 </label>
+
                                 <input
                                     id="reorderLevel"
                                     name="reorderLevel"
                                     type="number"
-                                    value={formData.reorderLevel}
+                                    min="0"
+                                    value={
+                                        formData.reorderLevel
+                                    }
                                     onChange={handleChange}
                                     placeholder="Enter reorder level"
                                     className={
@@ -231,20 +339,35 @@ function AddStock() {
                                             : ""
                                     }
                                 />
+
                                 {errors.reorderLevel && (
                                     <small className="error-message">
-                                        {errors.reorderLevel}
+                                        {
+                                            errors.reorderLevel
+                                        }
                                     </small>
                                 )}
+
                             </div>
+
                         </div>
+
+                        {/* API Error */}
+                        {errors.submit && (
+                            <div className="error-message">
+                                {errors.submit}
+                            </div>
+                        )}
+
                     </div>
 
                     <div className="form-actions">
+
                         <button
                             type="button"
                             className="secondary-button"
                             onClick={handleCancel}
+                            disabled={isSubmitting}
                         >
                             Cancel
                         </button>
@@ -252,12 +375,21 @@ function AddStock() {
                         <button
                             type="submit"
                             className="primary-button form-submit-button"
+                            disabled={isSubmitting}
                         >
-                            Done
+                            <PackagePlus size={18} />
+
+                            {isSubmitting
+                                ? "Adding..."
+                                : "Done"}
                         </button>
+
                     </div>
+
                 </form>
+
             </div>
+
         </div>
     );
 }
