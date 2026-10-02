@@ -42,4 +42,6 @@ builder.Services.AddScoped<IDispatchNoteService, DispatchNoteService>();
 builder.Services.AddScoped<IStockItemRepository, StockItemRepository>();
 builder.Services.AddScoped<IStockItemService,StockItemService>();
 builder.Services.AddScoped<ITokenService,TokenService>();
+builder.Services.AddScoped< IStockSummaryRepository, StockSummaryRepository>();
+builder.Services.AddScoped< IStockSummaryService, StockSummaryService>();
 builder.Build().Run();

@@ -482,3 +482,84 @@ export async function getAllDispatchNotes() {
     return data;
 }
 
+export async function getAllStockSummaries() {
+    const response = await apiFetch(
+        "/stocksummary",
+        {
+            method: "GET"
+        },
+        true,
+        INVENTORY_API_BASE_URL
+    );
+
+    const contentType =
+        response.headers.get("content-type");
+
+    let data;
+
+    if (
+        contentType &&
+        contentType.includes("application/json")
+    ) {
+        data = await response.json();
+    } else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            typeof data === "string"
+                ? data
+                : data.message ||
+                  "Unable to retrieve Stock Summary."
+        );
+    }
+
+    return data;
+}
+
+
+export async function updateReorderLevel(
+    stockItemId,
+    reorderLevel
+) {
+    const response = await apiFetch(
+        `/stocksummary/${stockItemId}/reorderlevel`,
+        {
+            method: "PUT",
+            body: JSON.stringify({
+                reorderLevel: reorderLevel
+            })
+        },
+        true,
+        INVENTORY_API_BASE_URL
+    );
+
+    const contentType =
+        response.headers.get("content-type");
+
+    let data;
+
+    if (
+        contentType &&
+        contentType.includes("application/json")
+    ) {
+        data = await response.json();
+    } else {
+        data = await response.text();
+    }
+
+    if (!response.ok) {
+        throw new Error(
+            typeof data === "string"
+                ? data
+                : data.message ||
+                  "Unable to update reorder level."
+        );
+    }
+
+    return data;
+}
+
+
+
