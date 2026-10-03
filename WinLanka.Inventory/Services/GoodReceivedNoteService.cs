@@ -1,10 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using WinLanka.Inventory.DTOs;
+﻿using WinLanka.Inventory.DTOs;
 using WinLanka.Inventory.Repositories.Interface;
-using WinLanka.Inventory.Security.Interfaces;
 using WinLanka.Inventory.Services.Interface;
 using WinLanka.Server.Models;
 

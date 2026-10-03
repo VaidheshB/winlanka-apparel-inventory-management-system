@@ -5,22 +5,25 @@ using Microsoft.Extensions.Logging;
 using WinLanka.Inventory.DTOs;
 using WinLanka.Inventory.Security.Interfaces;
 using WinLanka.Inventory.Services.Interface;
+using WinLanka.Server.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace WinLanka.Inventory.Functions
 {
     public class UpdateReorderLevelFunction
     {
         private readonly ILogger<UpdateReorderLevelFunction> _logger;
-
         private readonly ITokenService _tokenService;
-
         private readonly IStockSummaryService  _stockSummaryService;
-
-        public UpdateReorderLevelFunction( ILogger<UpdateReorderLevelFunction> logger, ITokenService tokenService, IStockSummaryService stockSummaryService)
+        private readonly IEmailService _emailService;
+        private readonly ApplicationDbContext _context;
+        public UpdateReorderLevelFunction( ILogger<UpdateReorderLevelFunction> logger, ITokenService tokenService, IStockSummaryService stockSummaryService, IEmailService emailService, ApplicationDbContext context)
         {
             _logger = logger;
             _tokenService = tokenService;
             _stockSummaryService = stockSummaryService;
+            _emailService = emailService;
+            _context = context;
         }
 
         [Function("UpdateReorderLevelFunction")]
@@ -101,16 +104,39 @@ namespace WinLanka.Inventory.Functions
 
             try
             {
-                await _stockSummaryService.UpdateReorderLevelAsync( stockItemId, request.ReorderLevel);
+                var result = await _stockSummaryService.UpdateReorderLevelAsync( stockItemId, request.ReorderLevel);
+
+                var recipientEmails = await GetStorekeeperAndStockManagerEmailsAsync();
+
+                foreach (var email in recipientEmails)
+                {
+                    try
+                    {
+                        await _emailService.SendReorderLevelUpdatedEmailAsync(email, result.StockName, result.StockItemId, result.OldReorderLevel, result.NewReorderLevel);
+
+                    }
+                    catch (Exception emailException)
+                    {
+                        // Email failure should be logged. 
+                        // The database update itself has already succeeded. 
+                        _logger.LogError(emailException, "Failed to send reorder level notification to {Email}.", email);
+                    }
+
+
+                }
 
                 _logger.LogInformation( "Reorder level for Stock Item ID {StockItemId} updated to {ReorderLevel}.", stockItemId, request.ReorderLevel);
 
                 return new OkObjectResult( new
                     {
                         message ="Reorder level updated successfully.",
-                        stockItemId = stockItemId,
-                        reorderLevel = request.ReorderLevel
-                    });
+                        stockItemId = result.StockItemId,
+                        stockName = result.StockName,
+                        oldReorderLevel = result.OldReorderLevel,
+                        newReorderLevel = result.NewReorderLevel,
+                        notificationRecipients = recipientEmails.Count
+
+                });
             }
             catch (ArgumentException ex)
             {
@@ -128,6 +154,20 @@ namespace WinLanka.Inventory.Functions
                 };
             }
         }
+
+        private async Task<List<string>> GetStorekeeperAndStockManagerEmailsAsync()
+        {
+            return await _context.Users.Where(user => user.IsActive == true && !string.IsNullOrWhiteSpace(user.UserName) && user.UserScopes.Any(
+                        userScope => userScope.Scope != null && ( userScope.Scope.ScopeName == "Storekeeper" || userScope.Scope.ScopeName == "Stock Manager" )
+                    )
+                )
+                .Select(user => user.UserName!)
+                .Distinct()
+                .ToListAsync();
+        }
+
+
     }
+
 }
 

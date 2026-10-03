@@ -11,6 +11,6 @@ namespace WinLanka.Inventory.Services.Interface
 
         Task<List<StockSummaryResponseDTO>> GetAllStockSummariesAsync();
 
-        Task UpdateReorderLevelAsync( int stockItemId, int reorderLevel);
+        Task<ReorderLevelUpdateResultDTO> UpdateReorderLevelAsync( int stockItemId, int reorderLevel);
     }
 }

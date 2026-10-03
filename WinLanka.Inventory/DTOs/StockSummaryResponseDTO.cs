@@ -8,9 +8,9 @@ namespace WinLanka.Inventory.DTOs
     {
         public int StockSummaryId { get; set; }
         public int StockItemId { get; set; }
-        public string StockName { get; set; }
-        public string Category { get; set; }
-        public string Unit { get; set; }
+        public string? StockName { get; set; }
+        public string? Category { get; set; }
+        public string? Unit { get; set; }
         public int TotalReceived { get; set; }
         public int TotalDispatched { get; set; }
         public int AvailableQuantity { get; set; }

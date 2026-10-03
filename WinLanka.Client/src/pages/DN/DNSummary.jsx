@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Plus, Search, Eye, X } from "lucide-react";
+import {
+    Plus,
+    Search,
+    Eye,
+    X,
+    ClipboardList,
+    PackageMinus,
+    Users,
+    Boxes,
+    Truck,
+    CalendarDays
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -28,11 +39,10 @@ function DNSummary() {
     const [currentPage, setCurrentPage] =
         useState(1);
 
-    const itemsPerPage = 10;
-
-    // Selected DN for View modal
     const [selectedDN, setSelectedDN] =
         useState(null);
+
+    const itemsPerPage = 10;
 
     // =========================================
     // GET ALL DISPATCH NOTES
@@ -51,19 +61,6 @@ function DNSummary() {
                     "Dispatch Notes API response:",
                     data
                 );
-
-                /*
-                 * The API response is expected to be:
-                 *
-                 * [
-                 *   {
-                 *     dispatchNoteId,
-                 *     customer,
-                 *     date,
-                 *     dispatchItems: [...]
-                 *   }
-                 * ]
-                 */
 
                 const formattedDispatchNotes =
                     data.map((dispatchNote) => ({
@@ -135,51 +132,178 @@ function DNSummary() {
     }, []);
 
     // =========================================
+    // DASHBOARD STATISTICS
+    // =========================================
+
+    const dashboardStats = useMemo(() => {
+        const totalDispatchNotes =
+            dispatchNotes.length;
+
+        const totalDispatchedQuantity =
+            dispatchNotes.reduce(
+                (total, dn) =>
+                    total +
+                    dn.items.reduce(
+                        (sum, item) =>
+                            sum +
+                            (Number(item.quantity) || 0),
+                        0
+                    ),
+                0
+            );
+
+        const totalStockLines =
+            dispatchNotes.reduce(
+                (total, dn) =>
+                    total + dn.items.length,
+                0
+            );
+
+        const uniqueCustomers =
+            new Set(
+                dispatchNotes
+                    .map((dn) =>
+                        dn.customer
+                            ?.trim()
+                            .toLowerCase()
+                    )
+                    .filter(Boolean)
+            ).size;
+
+        return {
+            totalDispatchNotes,
+            totalDispatchedQuantity,
+            totalStockLines,
+            uniqueCustomers
+        };
+    }, [dispatchNotes]);
+
+    // =========================================
+    // CUSTOMER DISTRIBUTION
+    // =========================================
+
+    const customerStats = useMemo(() => {
+        const customerMap = {};
+
+        dispatchNotes.forEach((dn) => {
+            const customer =
+                dn.customer?.trim() ||
+                "Unknown Customer";
+
+            customerMap[customer] =
+                (customerMap[customer] || 0) + 1;
+        });
+
+        return Object.entries(customerMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+    }, [dispatchNotes]);
+
+    const maxCustomerCount =
+        customerStats.length > 0
+            ? Math.max(
+                ...customerStats.map(
+                    ([, count]) => count
+                )
+            )
+            : 1;
+
+    // =========================================
+    // UNIT DISTRIBUTION
+    // =========================================
+
+    const unitStats = useMemo(() => {
+        const unitMap = {};
+
+        dispatchNotes.forEach((dn) => {
+            dn.items.forEach((item) => {
+                const unit =
+                    item.unit?.trim() ||
+                    "Unknown";
+
+                const quantity =
+                    Number(item.quantity) || 0;
+
+                unitMap[unit] =
+                    (unitMap[unit] || 0) +
+                    quantity;
+            });
+        });
+
+        return Object.entries(unitMap)
+            .sort((a, b) => b[1] - a[1]);
+    }, [dispatchNotes]);
+
+    const totalUnitQuantity =
+        unitStats.reduce(
+            (total, [, quantity]) =>
+                total + quantity,
+            0
+        );
+
+    // =========================================
+    // RECENT DISPATCH NOTES
+    // =========================================
+
+    const recentDispatchNotes =
+        useMemo(() => {
+            return [...dispatchNotes]
+                .sort(
+                    (a, b) =>
+                        new Date(b.date) -
+                        new Date(a.date)
+                )
+                .slice(0, 5);
+        }, [dispatchNotes]);
+
+    // =========================================
     // SEARCH
     // =========================================
 
-    const filteredDispatchNotes = useMemo(() => {
-        const search =
-            searchTerm
-                .toLowerCase()
-                .trim();
-
-        if (!search) {
-            return dispatchNotes;
-        }
-
-        return dispatchNotes.filter((dn) =>
-            dn.id
-                .toString()
-                .includes(search) ||
-
-            dn.customer
-                .toLowerCase()
-                .includes(search) ||
-
-            dn.date
-                ?.toString()
-                .includes(search) ||
-
-            dn.items.some((item) =>
-                item.name
+    const filteredDispatchNotes =
+        useMemo(() => {
+            const search =
+                searchTerm
                     .toLowerCase()
-                    .includes(search)
-            )
-        );
-    }, [
-        searchTerm,
-        dispatchNotes
-    ]);
+                    .trim();
+
+            if (!search) {
+                return dispatchNotes;
+            }
+
+            return dispatchNotes.filter((dn) =>
+                dn.id
+                    .toString()
+                    .includes(search) ||
+
+                dn.customer
+                    .toLowerCase()
+                    .includes(search) ||
+
+                dn.date
+                    ?.toString()
+                    .includes(search) ||
+
+                dn.items.some((item) =>
+                    item.name
+                        .toLowerCase()
+                        .includes(search)
+                )
+            );
+        }, [
+            searchTerm,
+            dispatchNotes
+        ]);
 
     // =========================================
     // PAGINATION
     // =========================================
 
-    const totalPages = Math.ceil(
-        filteredDispatchNotes.length /
-        itemsPerPage
-    );
+    const totalPages =
+        Math.ceil(
+            filteredDispatchNotes.length /
+            itemsPerPage
+        );
 
     const paginatedDispatchNotes =
         filteredDispatchNotes.slice(
@@ -208,12 +332,10 @@ function DNSummary() {
         );
     };
 
-    // Open View modal
     const handleViewDispatchNote = (dn) => {
         setSelectedDN(dn);
     };
 
-    // Close View modal
     const handleCloseModal = () => {
         setSelectedDN(null);
     };
@@ -237,16 +359,29 @@ function DNSummary() {
     return (
         <div className="page-container">
 
-            {/* ================================= */}
+            {/* ========================================= */}
             {/* PAGE HEADER */}
-            {/* ================================= */}
+            {/* ========================================= */}
 
-            <div className="page-header">
+            <div className="page-header dn-page-header">
 
-                <div>
-                    <h1>
-                        Dispatch Note Summary
-                    </h1>
+                <div className="page-title-group">
+
+                    <div className="page-title-icon dn-title-icon">
+                        <PackageMinus size={23} />
+                    </div>
+
+                    <div>
+                        <h1>
+                            Dispatch Note Summary
+                        </h1>
+
+                        <p>
+                            Monitor outgoing stock and
+                            dispatched inventory.
+                        </p>
+                    </div>
+
                 </div>
 
                 {role === "Storekeeper" && (
@@ -264,16 +399,456 @@ function DNSummary() {
 
             </div>
 
+            {/* ========================================= */}
+            {/* STATISTICS */}
+            {/* ========================================= */}
 
-            {/* ================================= */}
+            <div className="dn-stat-grid">
+
+                {/* Total DN */}
+
+                <div className="dn-stat-card dn-blue">
+
+                    <div className="dn-stat-icon">
+                        <ClipboardList size={21} />
+                    </div>
+
+                    <div className="dn-stat-content">
+
+                        <span>
+                            Total Dispatch Notes
+                        </span>
+
+                        <strong>
+                            {
+                                dashboardStats
+                                    .totalDispatchNotes
+                            }
+                        </strong>
+
+                        <small>
+                            Dispatch records
+                        </small>
+
+                    </div>
+
+                </div>
+
+                {/* Quantity */}
+
+                <div className="dn-stat-card dn-orange">
+
+                    <div className="dn-stat-icon">
+                        <PackageMinus size={21} />
+                    </div>
+
+                    <div className="dn-stat-content">
+
+                        <span>
+                            Quantity Dispatched
+                        </span>
+
+                        <strong>
+                            {
+                                dashboardStats
+                                    .totalDispatchedQuantity
+                                    .toLocaleString()
+                            }
+                        </strong>
+
+                        <small>
+                            Across all dispatch notes
+                        </small>
+
+                    </div>
+
+                </div>
+
+                {/* Customers */}
+
+                <div className="dn-stat-card dn-green">
+
+                    <div className="dn-stat-icon">
+                        <Users size={21} />
+                    </div>
+
+                    <div className="dn-stat-content">
+
+                        <span>
+                            Customers
+                        </span>
+
+                        <strong>
+                            {
+                                dashboardStats
+                                    .uniqueCustomers
+                            }
+                        </strong>
+
+                        <small>
+                            Unique customers
+                        </small>
+
+                    </div>
+
+                </div>
+
+                {/* Stock Lines */}
+
+                <div className="dn-stat-card dn-purple">
+
+                    <div className="dn-stat-icon">
+                        <Boxes size={21} />
+                    </div>
+
+                    <div className="dn-stat-content">
+
+                        <span>
+                            Stock Lines
+                        </span>
+
+                        <strong>
+                            {
+                                dashboardStats
+                                    .totalStockLines
+                            }
+                        </strong>
+
+                        <small>
+                            Items dispatched
+                        </small>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            {/* ========================================= */}
+            {/* ANALYTICS */}
+            {/* ========================================= */}
+
+            {!isLoading &&
+                !error &&
+                dispatchNotes.length > 0 && (
+
+                    <div className="dn-analytics-grid">
+
+                        {/* Customer Activity */}
+
+                        <div className="dashboard-panel">
+
+                            <div className="dashboard-panel-header">
+
+                                <div>
+                                    <h2>
+                                        Customer Activity
+                                    </h2>
+
+                                    <p>
+                                        Dispatch notes by customer
+                                    </p>
+                                </div>
+
+                                <div className="panel-icon">
+                                    <Users size={19} />
+                                </div>
+
+                            </div>
+
+                            <div className="dn-customer-chart">
+
+                                {customerStats.length > 0 ? (
+                                    customerStats.map(
+                                        ([customer, count]) => {
+
+                                            const percentage =
+                                                (
+                                                    count /
+                                                    maxCustomerCount
+                                                ) * 100;
+
+                                            return (
+                                                <div
+                                                    className="dn-customer-row"
+                                                    key={customer}
+                                                >
+
+                                                    <div className="dn-customer-label">
+
+                                                        <span
+                                                            title={customer}
+                                                        >
+                                                            {customer}
+                                                        </span>
+
+                                                        <strong>
+                                                            {count}
+                                                        </strong>
+
+                                                    </div>
+
+                                                    <div className="dn-customer-track">
+
+                                                        <div
+                                                            className="dn-customer-fill"
+                                                            style={{
+                                                                width:
+                                                                    `${percentage}%`
+                                                            }}
+                                                        />
+
+                                                    </div>
+
+                                                </div>
+                                            );
+                                        }
+                                    )
+                                ) : (
+                                    <div className="analytics-empty">
+                                        No customer data available.
+                                    </div>
+                                )}
+
+                            </div>
+
+                        </div>
+
+                        {/* Quantity By Unit */}
+
+                        <div className="dashboard-panel">
+
+                            <div className="dashboard-panel-header">
+
+                                <div>
+                                    <h2>
+                                        Dispatched Quantity
+                                    </h2>
+
+                                    <p>
+                                        Quantity grouped by unit
+                                    </p>
+                                </div>
+
+                                <div className="panel-icon orange-panel-icon">
+                                    <PackageMinus size={19} />
+                                </div>
+
+                            </div>
+
+                            <div className="dn-unit-chart">
+
+                                {unitStats.length > 0 ? (
+                                    unitStats.map(
+                                        ([unit, quantity]) => {
+
+                                            const percentage =
+                                                totalUnitQuantity >
+                                                0
+                                                    ? (
+                                                        quantity /
+                                                        totalUnitQuantity
+                                                    ) * 100
+                                                    : 0;
+
+                                            return (
+                                                <div
+                                                    className="dn-unit-row"
+                                                    key={unit}
+                                                >
+
+                                                    <div className="dn-unit-info">
+
+                                                        <div className="dn-unit-name">
+                                                            <span className="dn-unit-dot" />
+                                                            {unit}
+                                                        </div>
+
+                                                        <strong>
+                                                            {
+                                                                quantity.toLocaleString()
+                                                            }
+                                                        </strong>
+
+                                                    </div>
+
+                                                    <div className="dn-unit-track">
+
+                                                        <div
+                                                            className="dn-unit-fill"
+                                                            style={{
+                                                                width:
+                                                                    `${percentage}%`
+                                                            }}
+                                                        />
+
+                                                    </div>
+
+                                                    <small>
+                                                        {
+                                                            percentage.toFixed(
+                                                                1
+                                                            )
+                                                        }%
+                                                    </small>
+
+                                                </div>
+                                            );
+                                        }
+                                    )
+                                ) : (
+                                    <div className="analytics-empty">
+                                        No quantity data available.
+                                    </div>
+                                )}
+
+                            </div>
+
+                        </div>
+
+                    </div>
+                )}
+
+            {/* ========================================= */}
+            {/* RECENT DISPATCH ACTIVITY */}
+            {/* ========================================= */}
+
+            {!isLoading &&
+                !error &&
+                recentDispatchNotes.length > 0 && (
+
+                    <div className="dn-recent-panel dashboard-panel">
+
+                        <div className="dashboard-panel-header">
+
+                            <div>
+                                <h2>
+                                    Recent Dispatch Activity
+                                </h2>
+
+                                <p>
+                                    Latest outgoing stock records
+                                </p>
+                            </div>
+
+                            <div className="panel-icon orange-panel-icon">
+                                <CalendarDays size={19} />
+                            </div>
+
+                        </div>
+
+                        <div className="recent-dn-list">
+
+                            {recentDispatchNotes.map((dn) => {
+
+                                const totalItems =
+                                    dn.items.length;
+
+                                const totalQuantity =
+                                    dn.items.reduce(
+                                        (sum, item) =>
+                                            sum +
+                                            (
+                                                Number(
+                                                    item.quantity
+                                                ) || 0
+                                            ),
+                                        0
+                                    );
+
+                                return (
+                                    <div
+                                        className="recent-dn-item"
+                                        key={dn.id}
+                                    >
+
+                                        <div className="recent-dn-icon">
+                                            <PackageMinus size={18} />
+                                        </div>
+
+                                        <div className="recent-dn-main">
+
+                                            <strong>
+                                                DN #{dn.id}
+                                            </strong>
+
+                                            <span>
+                                                {
+                                                    dn.customer ||
+                                                    "Unknown Customer"
+                                                }
+                                            </span>
+
+                                        </div>
+
+                                        <div className="recent-dn-meta">
+
+                                            <span>
+                                                {
+                                                    formatDate(
+                                                        dn.date
+                                                    ) || "-"
+                                                }
+                                            </span>
+
+                                            <small>
+                                                {totalItems}{" "}
+                                                {
+                                                    totalItems === 1
+                                                        ? "item"
+                                                        : "items"
+                                                }{" "}
+                                                ·{" "}
+                                                {
+                                                    totalQuantity.toLocaleString()
+                                                }{" "}
+                                                dispatched
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+                                );
+                            })}
+
+                        </div>
+
+                    </div>
+                )}
+
+            {/* ========================================= */}
             {/* TABLE CARD */}
-            {/* ================================= */}
+            {/* ========================================= */}
 
-            <div className="table-card">
+            <div className="table-card dn-table-card">
 
-                {/* ================================= */}
-                {/* TOOLBAR */}
-                {/* ================================= */}
+                <div className="table-section-heading">
+
+                    <div>
+                        <h2>
+                            Dispatch Notes
+                        </h2>
+
+                        <p>
+                            Manage and review outgoing
+                            inventory records.
+                        </p>
+                    </div>
+
+                    <div className="table-record-count">
+                        {
+                            filteredDispatchNotes.length
+                        }{" "}
+                        {
+                            filteredDispatchNotes.length === 1
+                                ? "record"
+                                : "records"
+                        }
+                    </div>
+
+                </div>
+
+                {/* Toolbar */}
 
                 <div className="table-toolbar">
 
@@ -285,19 +860,14 @@ function DNSummary() {
                             type="text"
                             placeholder="Search by DN ID, customer, date or stock item..."
                             value={searchTerm}
-                            onChange={
-                                handleSearch
-                            }
+                            onChange={handleSearch}
                         />
 
                     </div>
 
                 </div>
 
-
-                {/* ================================= */}
-                {/* ERROR */}
-                {/* ================================= */}
+                {/* Error */}
 
                 {error && (
                     <div className="error-message">
@@ -305,14 +875,11 @@ function DNSummary() {
                     </div>
                 )}
 
-
-                {/* ================================= */}
-                {/* TABLE */}
-                {/* ================================= */}
+                {/* Table */}
 
                 <div className="table-wrapper">
 
-                    <table className="data-table">
+                    <table className="data-table dn-data-table">
 
                         <thead>
                             <tr>
@@ -340,7 +907,6 @@ function DNSummary() {
                             </tr>
                         </thead>
 
-
                         <tbody>
 
                             {isLoading ? (
@@ -364,26 +930,55 @@ function DNSummary() {
                                         >
 
                                             {/* DN ID */}
-                                            <td>
-                                                {dn.id}
-                                            </td>
 
+                                            <td>
+
+                                                <span className="dn-id-badge">
+                                                    DN-{dn.id}
+                                                </span>
+
+                                            </td>
 
                                             {/* Customer */}
-                                            <td className="stock-item-name">
-                                                {dn.customer}
-                                            </td>
 
+                                            <td>
+
+                                                <div className="customer-cell">
+
+                                                    <div className="customer-avatar">
+                                                        <Users size={15} />
+                                                    </div>
+
+                                                    <span className="stock-item-name">
+                                                        {
+                                                            dn.customer ||
+                                                            "Unknown Customer"
+                                                        }
+                                                    </span>
+
+                                                </div>
+
+                                            </td>
 
                                             {/* Date */}
+
                                             <td>
-                                                {formatDate(
-                                                    dn.date
-                                                )}
+
+                                                <span className="dn-date-badge">
+                                                    <CalendarDays size={14} />
+
+                                                    {
+                                                        formatDate(
+                                                            dn.date
+                                                        ) || "-"
+                                                    }
+
+                                                </span>
+
                                             </td>
 
-
                                             {/* Items */}
+
                                             <td>
 
                                                 <div className="grn-item-list">
@@ -399,7 +994,7 @@ function DNSummary() {
                                                                     item.id ??
                                                                     `${dn.id}-${index}`
                                                                 }
-                                                                className="grn-item"
+                                                                className="grn-item dn-item"
                                                             >
 
                                                                 <span className="grn-item-name">
@@ -408,7 +1003,7 @@ function DNSummary() {
                                                                     }
                                                                 </span>
 
-                                                                <span className="grn-item-quantity">
+                                                                <span className="dn-item-quantity">
                                                                     {
                                                                         item.quantity
                                                                     }{" "}
@@ -418,7 +1013,6 @@ function DNSummary() {
                                                                 </span>
 
                                                             </div>
-
                                                         )
                                                     )}
 
@@ -426,8 +1020,8 @@ function DNSummary() {
 
                                             </td>
 
-
                                             {/* Action */}
+
                                             <td>
 
                                                 <button
@@ -470,10 +1064,7 @@ function DNSummary() {
 
                 </div>
 
-
-                {/* ================================= */}
-                {/* PAGINATION */}
-                {/* ================================= */}
+                {/* Pagination */}
 
                 {totalPages > 1 && (
 
@@ -493,12 +1084,10 @@ function DNSummary() {
                             Previous
                         </button>
 
-
                         <span>
                             Page {currentPage} of{" "}
                             {totalPages}
                         </span>
-
 
                         <button
                             type="button"
@@ -516,15 +1105,13 @@ function DNSummary() {
                         </button>
 
                     </div>
-
                 )}
 
             </div>
 
-
-            {/* ================================= */}
+            {/* ========================================= */}
             {/* VIEW DN MODAL */}
-            {/* ================================= */}
+            {/* ========================================= */}
 
             {selectedDN && (
 
@@ -542,26 +1129,30 @@ function DNSummary() {
                         }
                     >
 
-                        {/* ================================= */}
-                        {/* MODAL HEADER */}
-                        {/* ================================= */}
+                        {/* Modal Header */}
 
                         <div className="modal-header">
 
-                            <div>
+                            <div className="modal-title-with-icon">
 
-                                <h2>
-                                    View Dispatched Note
-                                </h2>
+                                <div className="modal-title-icon dn-modal-icon">
+                                    <PackageMinus size={20} />
+                                </div>
 
-                                <p>
-                                    View the complete DN
-                                    information and
-                                    dispatched items.
-                                </p>
+                                <div>
+
+                                    <h2>
+                                        View Dispatch Note
+                                    </h2>
+
+                                    <p>
+                                        Complete DN information
+                                        and dispatched stock items.
+                                    </p>
+
+                                </div>
 
                             </div>
-
 
                             <button
                                 type="button"
@@ -576,52 +1167,90 @@ function DNSummary() {
 
                         </div>
 
-
-                        {/* ================================= */}
-                        {/* MODAL BODY */}
-                        {/* ================================= */}
+                        {/* Modal Body */}
 
                         <div className="modal-body">
 
-                            {/* DN INFORMATION */}
+                            {/* DN Summary */}
 
-                            <div className="modal-detail-grid">
+                            <div className="dn-modal-summary">
 
-                                {/* DN ID */}
-
-                                <div className="modal-detail-item">
+                                <div className="dn-modal-summary-card">
 
                                     <span>
                                         DN ID
                                     </span>
 
                                     <strong>
-                                        {
-                                            selectedDN.id
-                                        }
+                                        #{selectedDN.id}
                                     </strong>
 
                                 </div>
 
-
-                                {/* Date */}
-
-                                <div className="modal-detail-item">
+                                <div className="dn-modal-summary-card">
 
                                     <span>
                                         Date
                                     </span>
 
                                     <strong>
-                                        {formatDate(
-                                            selectedDN.date
-                                        )}
+                                        {
+                                            formatDate(
+                                                selectedDN.date
+                                            ) || "-"
+                                        }
                                     </strong>
 
                                 </div>
 
+                                <div className="dn-modal-summary-card">
 
-                                {/* Customer */}
+                                    <span>
+                                        Items
+                                    </span>
+
+                                    <strong>
+                                        {
+                                            selectedDN.items
+                                                .length
+                                        }
+                                    </strong>
+
+                                </div>
+
+                                <div className="dn-modal-summary-card">
+
+                                    <span>
+                                        Total Quantity
+                                    </span>
+
+                                    <strong>
+                                        {
+                                            selectedDN.items
+                                                .reduce(
+                                                    (
+                                                        sum,
+                                                        item
+                                                    ) =>
+                                                        sum +
+                                                        (
+                                                            Number(
+                                                                item.quantity
+                                                            ) || 0
+                                                        ),
+                                                    0
+                                                )
+                                                .toLocaleString()
+                                        }
+                                    </strong>
+
+                                </div>
+
+                            </div>
+
+                            {/* Customer */}
+
+                            <div className="modal-detail-grid">
 
                                 <div className="modal-detail-item modal-detail-full">
 
@@ -639,10 +1268,7 @@ function DNSummary() {
 
                             </div>
 
-
-                            {/* ================================= */}
-                            {/* DISPATCHED ITEMS */}
-                            {/* ================================= */}
+                            {/* Dispatched Items */}
 
                             <div className="modal-items-section">
 
@@ -660,7 +1286,6 @@ function DNSummary() {
                                                     .items
                                                     .length
                                             }{" "}
-
                                             {
                                                 selectedDN
                                                     .items
@@ -668,7 +1293,6 @@ function DNSummary() {
                                                     ? "item"
                                                     : "items"
                                             }{" "}
-
                                             dispatched in
                                             this DN.
                                         </p>
@@ -676,7 +1300,6 @@ function DNSummary() {
                                     </div>
 
                                 </div>
-
 
                                 {/* Items Table */}
 
@@ -708,51 +1331,64 @@ function DNSummary() {
 
                                         </thead>
 
-
                                         <tbody>
 
-                                            {selectedDN.items.map(
-                                                (
-                                                    item,
-                                                    index
-                                                ) => (
+                                            {
+                                                selectedDN.items.map(
+                                                    (
+                                                        item,
+                                                        index
+                                                    ) => (
 
-                                                    <tr
-                                                        key={
-                                                            item.id ??
-                                                            `${selectedDN.id}-item-${index}`
-                                                        }
-                                                    >
-
-                                                        <td>
-                                                            {index + 1}
-                                                        </td>
-
-
-                                                        <td className="modal-table-item-name">
-                                                            {
-                                                                item.name
+                                                        <tr
+                                                            key={
+                                                                item.id ??
+                                                                `${selectedDN.id}-item-${index}`
                                                             }
-                                                        </td>
+                                                        >
 
+                                                            <td>
 
-                                                        <td>
-                                                            {
-                                                                item.quantity
-                                                            }
-                                                        </td>
+                                                                <span className="item-number dn-number">
+                                                                    {
+                                                                        index +
+                                                                        1
+                                                                    }
+                                                                </span>
 
+                                                            </td>
 
-                                                        <td>
-                                                            {
-                                                                item.unit
-                                                            }
-                                                        </td>
+                                                            <td className="modal-table-item-name">
+                                                                {
+                                                                    item.name
+                                                                }
+                                                            </td>
 
-                                                    </tr>
+                                                            <td>
 
+                                                                <strong>
+                                                                    {
+                                                                        item.quantity
+                                                                    }
+                                                                </strong>
+
+                                                            </td>
+
+                                                            <td>
+
+                                                                <span className="unit-badge dn-unit-badge">
+                                                                    {
+                                                                        item.unit
+                                                                    }
+                                                                </span>
+
+                                                            </td>
+
+                                                        </tr>
+
+                                                    )
                                                 )
-                                            )}
+                                            }
 
                                         </tbody>
 
@@ -764,10 +1400,7 @@ function DNSummary() {
 
                         </div>
 
-
-                        {/* ================================= */}
-                        {/* MODAL FOOTER */}
-                        {/* ================================= */}
+                        {/* Modal Footer */}
 
                         <div className="modal-footer">
 
@@ -786,7 +1419,6 @@ function DNSummary() {
                     </div>
 
                 </div>
-
             )}
 
         </div>
@@ -794,4 +1426,3 @@ function DNSummary() {
 }
 
 export default DNSummary;
-

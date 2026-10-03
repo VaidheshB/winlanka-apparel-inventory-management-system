@@ -4,11 +4,17 @@ import {
     Eye,
     Pencil,
     UserPlus,
-    X
+    X,
+    Users,
+    UserCheck,
+    UserX,
+    ShieldCheck,
+    BriefcaseBusiness,
+    PackageCheck
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { updateUser, getAllUsers} from "../../services/api";
-import { getCurrentUser} from "../../services/auth";
+import { updateUser, getAllUsers } from "../../services/api";
+import { getCurrentUser } from "../../services/auth";
 
 function UsersSummary() {
 
@@ -44,7 +50,8 @@ function UsersSummary() {
             setIsLoadingUsers(true);
             setUsersError("");
 
-            const data =await getAllUsers();
+            const data = await getAllUsers();
+
             const formattedUsers =
                 data.map((user) => ({
                     id: user.UserId,
@@ -54,9 +61,11 @@ function UsersSummary() {
                     isActive: user.IsActive,
                     scopes: user.Scopes || []
                 }));
+
             setUsers(formattedUsers);
 
         } catch (error) {
+
             console.error(
                 "Failed to load users:",
                 error
@@ -79,7 +88,102 @@ function UsersSummary() {
         "Stock Manager"
     ];
 
-    // Search
+
+    /*
+    ============================================================
+    DASHBOARD STATISTICS
+    ============================================================
+    */
+
+    const dashboardStats = useMemo(() => {
+
+        const totalUsers = users.length;
+
+        const activeUsers = users.filter(
+            (user) => user.isActive
+        ).length;
+
+        const inactiveUsers = users.filter(
+            (user) => !user.isActive
+        ).length;
+
+        const adminUsers = users.filter(
+            (user) => user.scopes.includes("Admin")
+        ).length;
+
+        const storekeeperUsers = users.filter(
+            (user) => user.scopes.includes("Storekeeper")
+        ).length;
+
+        const stockManagerUsers = users.filter(
+            (user) => user.scopes.includes("Stock Manager")
+        ).length;
+
+        const activePercentage =
+            totalUsers > 0
+                ? Math.round((activeUsers / totalUsers) * 100)
+                : 0;
+
+        return {
+            totalUsers,
+            activeUsers,
+            inactiveUsers,
+            adminUsers,
+            storekeeperUsers,
+            stockManagerUsers,
+            activePercentage
+        };
+
+    }, [users]);
+
+
+    /*
+    ============================================================
+    SCOPE BAR CHART
+    ============================================================
+    */
+
+    const scopeChart = useMemo(() => {
+
+        const values = [
+            {
+                name: "Admin",
+                count: dashboardStats.adminUsers,
+                className: "scope-bar-admin"
+            },
+            {
+                name: "Storekeeper",
+                count: dashboardStats.storekeeperUsers,
+                className: "scope-bar-storekeeper"
+            },
+            {
+                name: "Stock Manager",
+                count: dashboardStats.stockManagerUsers,
+                className: "scope-bar-manager"
+            }
+        ];
+
+        const maximum =
+            Math.max(
+                ...values.map((item) => item.count),
+                1
+            );
+
+        return values.map((item) => ({
+            ...item,
+            percentage:
+                (item.count / maximum) * 100
+        }));
+
+    }, [dashboardStats]);
+
+
+    /*
+    ============================================================
+    SEARCH
+    ============================================================
+    */
+
     const filteredUsers = useMemo(() => {
 
         const search = searchTerm.toLowerCase().trim();
@@ -100,7 +204,13 @@ function UsersSummary() {
 
     }, [searchTerm, users]);
 
-    // Pagination
+
+    /*
+    ============================================================
+    PAGINATION
+    ============================================================
+    */
+
     const totalPages = Math.ceil(
         filteredUsers.length / itemsPerPage
     );
@@ -110,23 +220,38 @@ function UsersSummary() {
         currentPage * itemsPerPage
     );
 
+
     const handleSearch = (event) => {
         setSearchTerm(event.target.value);
         setCurrentPage(1);
     };
 
+
     const handleAddUser = () => {
         navigate("/users/add");
     };
 
-    // Open View modal
+
+    /*
+    ============================================================
+    VIEW MODAL
+    ============================================================
+    */
+
     const handleViewUser = (user) => {
         setSelectedUser(user);
         setModalType("view");
     };
 
-    // Open Edit modal
+
+    /*
+    ============================================================
+    EDIT MODAL
+    ============================================================
+    */
+
     const handleEditUser = (user) => {
+
         setSelectedUser({
             ...user,
             scopes: [...user.scopes]
@@ -137,8 +262,15 @@ function UsersSummary() {
         setModalType("edit");
     };
 
-    // Close modal
+
+    /*
+    ============================================================
+    CLOSE MODAL
+    ============================================================
+    */
+
     const handleCloseModal = () => {
+
         if (isUpdating) {
             return;
         }
@@ -148,7 +280,13 @@ function UsersSummary() {
         setUpdateError("");
     };
 
-    // Handle Edit input changes
+
+    /*
+    ============================================================
+    EDIT INPUT
+    ============================================================
+    */
+
     const handleEditChange = (event) => {
 
         const { name, value } = event.target;
@@ -159,7 +297,13 @@ function UsersSummary() {
         }));
     };
 
-    // Handle scope selection in Edit modal
+
+    /*
+    ============================================================
+    EDIT SCOPES
+    ============================================================
+    */
+
     const handleEditScopeChange = (scope) => {
 
         setSelectedUser((previous) => {
@@ -169,6 +313,7 @@ function UsersSummary() {
 
             return {
                 ...previous,
+
                 scopes: alreadySelected
                     ? previous.scopes.filter(
                         (item) => item !== scope
@@ -178,7 +323,13 @@ function UsersSummary() {
         });
     };
 
-    // Handle active status in Edit modal
+
+    /*
+    ============================================================
+    ACTIVE STATUS
+    ============================================================
+    */
+
     const handleEditActiveChange = () => {
 
         setSelectedUser((previous) => ({
@@ -187,8 +338,15 @@ function UsersSummary() {
         }));
     };
 
-    // Save edited user
+
+    /*
+    ============================================================
+    SAVE USER
+    ============================================================
+    */
+
     const handleSaveChanges = async (event) => {
+
         event.preventDefault();
 
         if (!selectedUser) {
@@ -197,36 +355,49 @@ function UsersSummary() {
 
         setUpdateError("");
 
-        // Frontend validation
+
         if (!selectedUser.firstName.trim()) {
+
             setUpdateError(
                 "First name is required."
             );
+
             return;
         }
 
+
         if (!selectedUser.lastName.trim()) {
+
             setUpdateError(
                 "Last name is required."
             );
+
             return;
         }
 
+
         if (!selectedUser.username.trim()) {
+
             setUpdateError(
                 "Username is required."
             );
+
             return;
         }
 
+
         if (selectedUser.scopes.length === 0) {
+
             setUpdateError(
                 "Select at least one user scope."
             );
+
             return;
         }
 
+
         const userData = {
+
             firstName:
                 selectedUser.firstName.trim(),
 
@@ -243,16 +414,10 @@ function UsersSummary() {
                 selectedUser.isActive
         };
 
-        try {
-            setIsUpdating(true);
 
-            console.log(
-                "Updating user:",
-                {
-                    userId: selectedUser.id,
-                    ...userData
-                }
-            );
+        try {
+
+            setIsUpdating(true);
 
             const response =
                 await updateUser(
@@ -265,8 +430,7 @@ function UsersSummary() {
                 response
             );
 
-            // Update local table only
-            // after backend succeeds.
+
             setUsers((previousUsers) =>
                 previousUsers.map((user) =>
                     user.id === selectedUser.id
@@ -275,9 +439,11 @@ function UsersSummary() {
                 )
             );
 
+
             handleCloseModal();
 
         } catch (error) {
+
             console.error(
                 "Update user failed:",
                 error
@@ -289,22 +455,42 @@ function UsersSummary() {
             );
 
         } finally {
+
             setIsUpdating(false);
+
         }
     };
 
+
     return (
+
         <div className="page-container">
 
-            {/* Page Header */}
+            {/* ==================================================
+                PAGE HEADER
+            ================================================== */}
+
             <div className="page-header">
 
-                <div>
-                    <h1>Users Summary</h1>
+                <div className="page-header-content">
+
+                    <div className="page-title-icon">
+                        <Users size={24} />
+                    </div>
+
+                    <div>
+                        <h1>Users Summary</h1>
+
+                        <p>
+                            Manage users, access scopes and account status.
+                        </p>
+                    </div>
+
                 </div>
 
-                {/* Admin only */}
+
                 {isAdmin && (
+
                     <button
                         type="button"
                         className="primary-button"
@@ -313,15 +499,334 @@ function UsersSummary() {
                         <UserPlus size={18} />
                         Add User
                     </button>
+
                 )}
 
             </div>
 
 
-            {/* Search and Table */}
+            {/* ==================================================
+                DASHBOARD STATISTICS
+            ================================================== */}
+
+            <div className="user-stat-grid">
+
+
+                {/* TOTAL USERS */}
+
+                <div className="user-stat-card blue">
+
+                    <div className="user-stat-top">
+
+                        <div className="user-stat-icon">
+                            <Users size={21} />
+                        </div>
+
+                        <span className="user-stat-label">
+                            Total Users
+                        </span>
+
+                    </div>
+
+                    <div className="user-stat-value">
+                        {dashboardStats.totalUsers}
+                    </div>
+
+                    <div className="user-stat-footer">
+                        Registered system accounts
+                    </div>
+
+                </div>
+
+
+                {/* ACTIVE USERS */}
+
+                <div className="user-stat-card green">
+
+                    <div className="user-stat-top">
+
+                        <div className="user-stat-icon">
+                            <UserCheck size={21} />
+                        </div>
+
+                        <span className="user-stat-label">
+                            Active Users
+                        </span>
+
+                    </div>
+
+                    <div className="user-stat-value">
+                        {dashboardStats.activeUsers}
+                    </div>
+
+                    <div className="user-stat-footer">
+                        Currently enabled accounts
+                    </div>
+
+                </div>
+
+
+                {/* INACTIVE USERS */}
+
+                <div className="user-stat-card orange">
+
+                    <div className="user-stat-top">
+
+                        <div className="user-stat-icon">
+                            <UserX size={21} />
+                        </div>
+
+                        <span className="user-stat-label">
+                            Inactive Users
+                        </span>
+
+                    </div>
+
+                    <div className="user-stat-value">
+                        {dashboardStats.inactiveUsers}
+                    </div>
+
+                    <div className="user-stat-footer">
+                        Accounts currently disabled
+                    </div>
+
+                </div>
+
+
+                {/* ADMIN */}
+
+                <div className="user-stat-card purple">
+
+                    <div className="user-stat-top">
+
+                        <div className="user-stat-icon">
+                            <ShieldCheck size={21} />
+                        </div>
+
+                        <span className="user-stat-label">
+                            Administrators
+                        </span>
+
+                    </div>
+
+                    <div className="user-stat-value">
+                        {dashboardStats.adminUsers}
+                    </div>
+
+                    <div className="user-stat-footer">
+                        Users with admin scope
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                ANALYTICS PANELS
+            ================================================== */}
+
+            <div className="users-analytics-grid">
+
+
+                {/* ==================================================
+                    SCOPE DISTRIBUTION
+                ================================================== */}
+
+                <div className="dashboard-panel">
+
+                    <div className="dashboard-panel-header">
+
+                        <div>
+
+                            <h2>User Access Overview</h2>
+
+                            <p>
+                                Distribution of assigned system scopes
+                            </p>
+
+                        </div>
+
+                        <div className="dashboard-panel-icon blue-panel">
+                            <BriefcaseBusiness size={19} />
+                        </div>
+
+                    </div>
+
+
+                    <div className="scope-chart">
+
+                        {scopeChart.map((item) => (
+
+                            <div
+                                className="scope-chart-row"
+                                key={item.name}
+                            >
+
+                                <div className="scope-chart-label">
+
+                                    <span>
+                                        {item.name}
+                                    </span>
+
+                                    <strong>
+                                        {item.count}
+                                    </strong>
+
+                                </div>
+
+
+                                <div className="scope-bar-track">
+
+                                    <div
+                                        className={`scope-bar-fill ${item.className}`}
+                                        style={{
+                                            width: `${item.percentage}%`
+                                        }}
+                                    />
+
+                                </div>
+
+                            </div>
+
+                        ))}
+
+                    </div>
+
+
+                    <div className="dashboard-panel-note">
+
+                        <span className="note-dot" />
+
+                        A user can have multiple scopes.
+
+                    </div>
+
+                </div>
+
+
+                {/* ==================================================
+                    ACCOUNT STATUS
+                ================================================== */}
+
+                <div className="dashboard-panel account-status-panel">
+
+                    <div className="dashboard-panel-header">
+
+                        <div>
+
+                            <h2>Account Status</h2>
+
+                            <p>
+                                Current user account availability
+                            </p>
+
+                        </div>
+
+                        <div className="dashboard-panel-icon orange-panel">
+                            <PackageCheck size={19} />
+                        </div>
+
+                    </div>
+
+
+                    <div className="status-dashboard-content">
+
+
+                        {/* DONUT */}
+
+                        <div
+                            className="status-donut"
+                            style={{
+                                background:
+                                    `conic-gradient(
+                                        #2563eb 0% ${dashboardStats.activePercentage}%,
+                                        #f97316 ${dashboardStats.activePercentage}% 100%
+                                    )`
+                            }}
+                        >
+
+                            <div className="status-donut-inner">
+
+                                <strong>
+                                    {dashboardStats.activePercentage}%
+                                </strong>
+
+                                <span>
+                                    Active
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                        {/* LEGEND */}
+
+                        <div className="status-legend">
+
+                            <div className="status-legend-item">
+
+                                <span className="legend-indicator blue" />
+
+                                <div>
+                                    <strong>
+                                        {dashboardStats.activeUsers}
+                                    </strong>
+
+                                    <span>
+                                        Active users
+                                    </span>
+                                </div>
+
+                            </div>
+
+
+                            <div className="status-legend-item">
+
+                                <span className="legend-indicator orange" />
+
+                                <div>
+                                    <strong>
+                                        {dashboardStats.inactiveUsers}
+                                    </strong>
+
+                                    <span>
+                                        Inactive users
+                                    </span>
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            {/* ==================================================
+                USER TABLE
+            ================================================== */}
+
             <div className="table-card">
 
                 <div className="table-toolbar">
+
+                    <div>
+
+                        <h2 className="table-section-title">
+                            System Users
+                        </h2>
+
+                        <p className="table-section-description">
+                            View and manage registered users.
+                        </p>
+
+                    </div>
+
 
                     <div className="search-box">
 
@@ -339,44 +844,54 @@ function UsersSummary() {
                 </div>
 
 
-                {/* Table */}
+                {/* TABLE */}
+
                 <div className="table-wrapper">
 
                     <table className="data-table">
 
                         <thead>
+
                             <tr>
+
                                 <th>User ID</th>
                                 <th>First Name</th>
                                 <th>Username</th>
                                 <th>Is Active</th>
                                 <th>Scopes</th>
                                 <th>Action</th>
+
                             </tr>
+
                         </thead>
+
 
                         <tbody>
 
                             {isLoadingUsers ? (
 
                                 <tr>
+
                                     <td
                                         colSpan="6"
                                         className="empty-table"
                                     >
                                         Loading users...
                                     </td>
+
                                 </tr>
 
                             ) : usersError ? (
 
                                 <tr>
+
                                     <td
                                         colSpan="6"
                                         className="empty-table"
                                     >
                                         {usersError}
                                     </td>
+
                                 </tr>
 
                             ) : paginatedUsers.length > 0 ? (
@@ -386,16 +901,29 @@ function UsersSummary() {
                                     <tr key={user.id}>
 
                                         <td>
-                                            {user.id}
+
+                                            <span className="user-id-badge">
+                                                #{user.id}
+                                            </span>
+
                                         </td>
+
 
                                         <td className="stock-item-name">
+
                                             {user.firstName}
+
                                         </td>
 
+
                                         <td>
-                                            {user.username}
+
+                                            <span className="username-cell">
+                                                {user.username}
+                                            </span>
+
                                         </td>
+
 
                                         <td>
 
@@ -406,12 +934,17 @@ function UsersSummary() {
                                                         : "status-badge inactive"
                                                 }
                                             >
+
+                                                <span className="status-dot" />
+
                                                 {user.isActive
                                                     ? "Active"
                                                     : "Inactive"}
+
                                             </span>
 
                                         </td>
+
 
                                         <td>
 
@@ -419,18 +952,21 @@ function UsersSummary() {
 
                                                 {user.scopes.map(
                                                     (scope) => (
+
                                                         <span
                                                             key={scope}
                                                             className="scope-badge"
                                                         >
                                                             {scope}
                                                         </span>
+
                                                     )
                                                 )}
 
                                             </div>
 
                                         </td>
+
 
                                         <td>
 
@@ -444,11 +980,16 @@ function UsersSummary() {
                                                         handleViewUser(user)
                                                     }
                                                 >
+
                                                     <Eye size={16} />
+
                                                     View
+
                                                 </button>
 
+
                                                 {isAdmin && (
+
                                                     <button
                                                         type="button"
                                                         className="edit-button"
@@ -457,9 +998,13 @@ function UsersSummary() {
                                                             handleEditUser(user)
                                                         }
                                                     >
+
                                                         <Pencil size={16} />
+
                                                         Edit
+
                                                     </button>
+
                                                 )}
 
                                             </div>
@@ -473,15 +1018,18 @@ function UsersSummary() {
                             ) : (
 
                                 <tr>
+
                                     <td
                                         colSpan="6"
                                         className="empty-table"
                                     >
                                         No users found.
                                     </td>
+
                                 </tr>
 
                             )}
+
                         </tbody>
 
                     </table>
@@ -489,7 +1037,8 @@ function UsersSummary() {
                 </div>
 
 
-                {/* Pagination */}
+                {/* PAGINATION */}
+
                 {totalPages > 1 && (
 
                     <div className="pagination">
@@ -525,9 +1074,9 @@ function UsersSummary() {
             </div>
 
 
-            {/* ========================= */}
-            {/* VIEW USER MODAL */}
-            {/* ========================= */}
+            {/* ==================================================
+                VIEW USER MODAL
+            ================================================== */}
 
             {modalType === "view" && selectedUser && (
 
@@ -543,14 +1092,16 @@ function UsersSummary() {
                         }
                     >
 
-                        {/* Modal Header */}
                         <div className="modal-header">
 
                             <div>
+
                                 <h2>View User</h2>
+
                                 <p>
                                     View the user's account information.
                                 </p>
+
                             </div>
 
                             <button
@@ -565,22 +1116,27 @@ function UsersSummary() {
                         </div>
 
 
-                        {/* Modal Body */}
                         <div className="modal-body">
 
                             <div className="modal-detail-grid">
 
                                 <div className="modal-detail-item">
+
                                     <span>User ID</span>
+
                                     <strong>
                                         {selectedUser.id}
                                     </strong>
+
                                 </div>
 
+
                                 <div className="modal-detail-item">
+
                                     <span>Account Status</span>
 
                                     <strong>
+
                                         <span
                                             className={
                                                 selectedUser.isActive
@@ -590,31 +1146,44 @@ function UsersSummary() {
                                         >
                                             {selectedUser.isActive
                                                 ? "Active"
-                                                : "Inactive"
-                                            }
+                                                : "Inactive"}
                                         </span>
+
                                     </strong>
+
                                 </div>
 
+
                                 <div className="modal-detail-item">
+
                                     <span>First Name</span>
+
                                     <strong>
                                         {selectedUser.firstName}
                                     </strong>
+
                                 </div>
 
+
                                 <div className="modal-detail-item">
+
                                     <span>Last Name</span>
+
                                     <strong>
                                         {selectedUser.lastName}
                                     </strong>
+
                                 </div>
 
+
                                 <div className="modal-detail-item modal-detail-full">
+
                                     <span>Username</span>
+
                                     <strong>
                                         {selectedUser.username}
                                     </strong>
+
                                 </div>
 
                             </div>
@@ -630,12 +1199,14 @@ function UsersSummary() {
 
                                     {selectedUser.scopes.map(
                                         (scope) => (
+
                                             <span
                                                 key={scope}
                                                 className="scope-badge"
                                             >
                                                 {scope}
                                             </span>
+
                                         )
                                     )}
 
@@ -646,7 +1217,6 @@ function UsersSummary() {
                         </div>
 
 
-                        {/* Modal Footer */}
                         <div className="modal-footer">
 
                             <button
@@ -666,9 +1236,9 @@ function UsersSummary() {
             )}
 
 
-            {/* ========================= */}
-            {/* EDIT USER MODAL */}
-            {/* ========================= */}
+            {/* ==================================================
+                EDIT USER MODAL
+            ================================================== */}
 
             {modalType === "edit" && selectedUser && (
 
@@ -684,14 +1254,16 @@ function UsersSummary() {
                         }
                     >
 
-                        {/* Modal Header */}
                         <div className="modal-header">
 
                             <div>
+
                                 <h2>Edit User</h2>
+
                                 <p>
                                     Update the user's account information.
                                 </p>
+
                             </div>
 
                             <button
@@ -706,18 +1278,22 @@ function UsersSummary() {
                         </div>
 
 
-                        {/* Edit Form */}
                         <form onSubmit={handleSaveChanges}>
 
                             <div className="modal-body">
+
                                 {updateError && (
+
                                     <div className="login-error">
                                         {updateError}
                                     </div>
+
                                 )}
+
+
                                 <div className="modal-edit-grid">
 
-                                    {/* First Name */}
+
                                     <div className="form-group">
 
                                         <label htmlFor="editFirstName">
@@ -736,7 +1312,6 @@ function UsersSummary() {
                                     </div>
 
 
-                                    {/* Last Name */}
                                     <div className="form-group">
 
                                         <label htmlFor="editLastName">
@@ -755,7 +1330,6 @@ function UsersSummary() {
                                     </div>
 
 
-                                    {/* Username */}
                                     <div className="form-group">
 
                                         <label htmlFor="editUsername">
@@ -774,7 +1348,6 @@ function UsersSummary() {
                                     </div>
 
 
-                                    {/* User ID */}
                                     <div className="form-group">
 
                                         <label htmlFor="editUserId">
@@ -793,15 +1366,20 @@ function UsersSummary() {
                                 </div>
 
 
-                                {/* Scopes */}
                                 <div className="modal-edit-section">
 
                                     <div className="form-section-header">
-                                        <h2>User Scopes</h2>
+
+                                        <h2>
+                                            User Scopes
+                                        </h2>
+
                                         <p>
                                             Select one or more scopes for this user.
                                         </p>
+
                                     </div>
+
 
                                     <div className="scope-options">
 
@@ -809,10 +1387,11 @@ function UsersSummary() {
 
                                             <label
                                                 key={scope}
-                                                className={`scope-option ${selectedUser.scopes.includes(scope)
+                                                className={`scope-option ${
+                                                    selectedUser.scopes.includes(scope)
                                                         ? "selected"
                                                         : ""
-                                                    }`}
+                                                }`}
                                             >
 
                                                 <input
@@ -824,9 +1403,12 @@ function UsersSummary() {
                                                 />
 
                                                 <span className="custom-checkbox">
+
                                                     {selectedUser.scopes.includes(scope) &&
                                                         "✓"}
+
                                                 </span>
+
 
                                                 <span className="scope-option-content">
 
@@ -835,6 +1417,7 @@ function UsersSummary() {
                                                     </strong>
 
                                                     <small>
+
                                                         {scope === "Admin" &&
                                                             "Manage system users"}
 
@@ -843,6 +1426,7 @@ function UsersSummary() {
 
                                                         {scope === "Stock Manager" &&
                                                             "View inventory and stock information"}
+
                                                     </small>
 
                                                 </span>
@@ -856,19 +1440,25 @@ function UsersSummary() {
                                 </div>
 
 
-                                {/* Account Status */}
                                 <div className="modal-edit-section">
 
                                     <div className="form-section-header">
-                                        <h2>Account Status</h2>
+
+                                        <h2>
+                                            Account Status
+                                        </h2>
+
                                         <p>
                                             Control whether this user can access the system.
                                         </p>
+
                                     </div>
+
 
                                     <div className="active-status-row">
 
                                         <div>
+
                                             <strong>
                                                 Active Account
                                             </strong>
@@ -879,14 +1469,17 @@ function UsersSummary() {
                                                     : "The user will not be able to access the system."
                                                 }
                                             </p>
+
                                         </div>
+
 
                                         <button
                                             type="button"
-                                            className={`toggle-switch ${selectedUser.isActive
+                                            className={`toggle-switch ${
+                                                selectedUser.isActive
                                                     ? "active"
                                                     : ""
-                                                }`}
+                                            }`}
                                             onClick={
                                                 handleEditActiveChange
                                             }
@@ -895,7 +1488,9 @@ function UsersSummary() {
                                                 selectedUser.isActive
                                             }
                                         >
+
                                             <span className="toggle-knob" />
+
                                         </button>
 
                                     </div>
@@ -905,21 +1500,28 @@ function UsersSummary() {
                             </div>
 
 
-                            {/* Modal Footer */}
                             <div className="modal-footer">
+
                                 <button
                                     type="button"
                                     className="secondary-button"
                                     onClick={handleCloseModal}
-                                    disabled={isUpdating} >
+                                    disabled={isUpdating}
+                                >
                                     Cancel
                                 </button>
+
 
                                 <button
                                     type="submit"
                                     className="primary-button form-submit-button"
-                                    disabled={isUpdating}>
-                                    {isUpdating ? "Saving..." : "Save Changes"}
+                                    disabled={isUpdating}
+                                >
+
+                                    {isUpdating
+                                        ? "Saving..."
+                                        : "Save Changes"}
+
                                 </button>
 
                             </div>

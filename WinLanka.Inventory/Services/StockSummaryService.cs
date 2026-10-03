@@ -112,17 +112,39 @@ namespace WinLanka.Inventory.Services
                 .ToList();
         }
 
-        public async Task UpdateReorderLevelAsync(int stockItemId, int reorderLevel)
+        public async Task<ReorderLevelUpdateResultDTO> UpdateReorderLevelAsync(int stockItemId, int reorderLevel)
         {
             if (reorderLevel < 0)
             {
-                throw new ArgumentException( "Reorder level cannot be negative.");
+                throw new ArgumentException("Reorder level cannot be negative.");
             }
 
-            await _stockSummaryRepository.UpdateReorderLevelAsync( stockItemId, reorderLevel);
+            var stockItem = await _context.StockItems.FirstOrDefaultAsync(item =>
+                    item.StockItemId == stockItemId);
+
+            if (stockItem == null)
+            {
+                throw new ArgumentException($"Stock Item ID {stockItemId} does not exist.");
+            }
+
+            var oldReorderLevel = stockItem.ReorderLevel;
+
+            stockItem.ReorderLevel = reorderLevel;
+
+            await _context.SaveChangesAsync();
+
+            return new ReorderLevelUpdateResultDTO
+            {
+                StockItemId = stockItem.StockItemId,
+                StockName = stockItem.StockName,
+                OldReorderLevel = oldReorderLevel,
+                NewReorderLevel = stockItem.ReorderLevel
+            };
         }
+
+
 
     }
 
-    
+
 }

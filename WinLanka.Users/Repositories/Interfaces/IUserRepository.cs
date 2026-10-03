@@ -16,5 +16,7 @@ namespace WinLanka.Users.Repositories.Interfaces
         Task<User?> GetUserByIdAsync(int userId);
         Task<User> UpdateUserAsync( User user,List<Scope> scopes);
         Task<List<User>> GetAllUsersAsync();
+        Task<List<string>> GetStorekeepersAndStockManagersEmailsAsync();
+
     }
 }

@@ -5,7 +5,7 @@ namespace WinLanka.Inventory.DTOs
     public class AddDispatchNoteRequestDTO
     {
         [Required]
-        public string Customer { get; set; }
+        public string? Customer { get; set; }
 
         [Required]
         public DateTime Date { get; set; }

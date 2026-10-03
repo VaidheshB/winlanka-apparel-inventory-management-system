@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
+using Resend;
 using WinLanka.Inventory.Repositories;
 using WinLanka.Inventory.Repositories.Interface;
 using WinLanka.Inventory.Security;
@@ -34,6 +35,18 @@ builder.Services.AddDbContext<ApplicationDbContext>(
         )
 );
 
+builder.Services.AddHttpClient<ResendClient>();
+
+builder.Services.Configure<ResendClientOptions>(
+    options =>
+    {
+        options.ApiToken =
+            Environment.GetEnvironmentVariable(
+                "ResendApiKey")!;
+    });
+
+builder.Services.AddTransient<IResend, ResendClient>();
+
 builder.Services.AddScoped<IStockItemRepository,StockItemRepository>();
 builder.Services.AddScoped<IGoodReceivedNoteRepository, GoodReceivedNoteRepository>();
 builder.Services.AddScoped<IGoodReceivedNoteService, GoodReceivedNoteService>();
@@ -44,4 +57,5 @@ builder.Services.AddScoped<IStockItemService,StockItemService>();
 builder.Services.AddScoped<ITokenService,TokenService>();
 builder.Services.AddScoped< IStockSummaryRepository, StockSummaryRepository>();
 builder.Services.AddScoped< IStockSummaryService, StockSummaryService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Build().Run();

@@ -8,13 +8,13 @@ namespace WinLanka.Inventory.DTOs
     public  class AddStockItemRequestDTO
     {
         [Required]
-        public string StockName { get; set; }
+        public string? StockName { get; set; }
 
         [Required]
-        public string Category { get; set; }
+        public string? Category { get; set; }
 
         [Required]
-        public string Unit { get; set; }
+        public string? Unit { get; set; }
 
         [Range(0, int.MaxValue)]
         public int ReorderLevel { get; set; }

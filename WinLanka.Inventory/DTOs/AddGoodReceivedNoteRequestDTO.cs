@@ -9,14 +9,14 @@ namespace WinLanka.Inventory.DTOs
     public class AddGoodReceivedNoteRequestDTO
     {
         [Required]
-        public string Supplier { get; set; }
+        public string? Supplier { get; set; }
 
         [Required]
         public DateTime Date { get; set; }
 
         [Required]
         [MinLength(1)]
-        public List<GRNItemRequest> Items { get; set; }
+        public List<GRNItemRequest>? Items { get; set; }
 
     }
 

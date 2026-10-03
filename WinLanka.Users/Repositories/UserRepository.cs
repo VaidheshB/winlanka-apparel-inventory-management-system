@@ -103,5 +103,14 @@ namespace WinLanka.Users.Repositories
                         .ToListAsync();
         }
 
+        public async Task<List<string>> GetStorekeepersAndStockManagersEmailsAsync()
+        {
+            return await _context.Users.Where(user => user.IsActive == true && !string.IsNullOrWhiteSpace(user.UserName) &&
+            user.UserScopes.Any(userScope => userScope.Scope != null && (userScope.Scope.ScopeName == "Storekeeper" || userScope.Scope.ScopeName == "Stock Manager"))).Select(user => user.UserName!).Distinct()
+            .ToListAsync();
+        }
+
+
+
     }
 }
